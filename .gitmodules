@@ -1,3 +1,3 @@
 [submodule "src"]
 	path = src
-	url = ./src
+	url = https://git.nju.edu.cn/Minaduki/linux.git
