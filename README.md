@@ -2,12 +2,17 @@
 
 ## Step 1: Install the cross compilers
 First mission is to install the gcc for arm linux to ensure that we can compile the kernel.     
-As using Manjaro distribution of Linux, use `yaourt` to install `arm-linux-gnueabihf-gcc` and the libraries used.     
+As using Ubuntu distribution of Linux, use `apt` to install `gcc-arm-linux-gnueabihf` and the libraries used.     
 ```
-yaourt -S arm-linux-gnueabihf-gcc arm-linux-gnueabihf-glibc arm-linux-gnueabihf-glibc-headers arm-linux-gnueabihf-linux-api-headers arm-linux-gnueabihf-gdb arm-linux-gnueabihf-gcc-stage1 arm-linux-gnueabihf-gcc-stage2 
+sudo apt install gcc-arm-linux-gnueabihf
+```
+After finished installing, compile a simple "Hello world" program to see if the compiler is working properly.     
+```
+arm-linux-gnueabigf-gcc -o helloarm helloworld.c
+```
+Use `file` to see the properties of the output file.
+> helloarm: ELF 32-bit LSB pie executable, ARM, EABI5 version 1 (SYSV), dynamically linked, interpreter /lib/ld-linux-armhf.so.3, BuildID[sha1]=8e92a4ef2b70e3db73ce9fe6a740a9025be3fdfc, for GNU/Linux 3.2.0, not stripped
 
-```
-To be done
 
 ## Step 2: Configure the Makefile of the kernel
 Apply the defualt configure file for BeagleBone.    
@@ -24,7 +29,7 @@ Then use `make menuconfig ARCH=arm` to manage the modules.
 make ARCH=arm CROSS_COMPILE=<Your own cross compiler prefix> -j8
 ## -j8 means use 8 threads to compile
 ```
-In ths case, my Cross compiler prefix is set as `arm-linux-gnueabihf-`.
+In ths case, my Cross compiler prefix is set as `arm-linux-gnueabihf-`.       
 The image file output is located at `./arch/arm/boot/`.    
 The Device tree binary file output is located at `./arch/arm/boot/dts/`.
 
@@ -35,16 +40,18 @@ For the first time running minicom, use command `minicom -s` to configure.
 2. Set `/dev/ttyUSB0` as the Serial Device.
 3. Set Bps/Par/Bits to be `115200 8N1`.
 4. Disable all Flow Controls.    
+![Configure of minicom](./pic/minicom_config.png)    
 After finished, save the setup as defualt and run minicom.
 
 ## Step 5: Start the tftp service on PC.
-1. Use `yaourt` to install package `tftp-hpa`. 
+1. Use `apt` to install package `tftp-hpa` and `tftpd-hpa`. 
 2. Edit `/etc/hosts.allow` and add:
 ```
 tftpd:ALL
 in.tftpd:ALL
 ```
-3. (Optional) Edit `/etc/conf.d/tftpd` to modify the default workspace.
+3. (Optional) (For Manjaro) Edit `/etc/conf.d/tftpd` to modify the default workspace.
+3. (Optional) (For Ubuntu) Edit `/etc/default/tftpd` to modify the default workspace.
 4. (Optional) Use `chmod` to edit the permissions of the workspace.
 5. Start the service.
 ```
@@ -68,5 +75,6 @@ bootz 0x82000000 0x88080000: <size of ramdisk> 0x88000000
 ```
 
 ## Step 7: Start the NFS service on PC.
-1. Edit the file `/etc/exports` to configure the service.
-2. Use `systemctl` to start and enable the service.
+1. Use `apt` to install `nfs-kernel-server`.
+2. Edit the file `/etc/exports` to configure the service.
+3. Use `systemctl` to start and enable the service.
