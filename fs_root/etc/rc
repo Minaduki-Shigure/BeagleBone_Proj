@@ -1,0 +1,4 @@
+#!/bin/sh
+hostname Minaduki-BeagleBone
+mount -t proc proc /proc
+/bin/cat /etc/motd
