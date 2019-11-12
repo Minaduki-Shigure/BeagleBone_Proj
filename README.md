@@ -177,16 +177,16 @@ $ systemctl enable tftpd.socket
 ## Step 9: Try to boot with U-boot using the kernel image and the ramdisk
 Wait for the device to boot into U-boot and use the following script to boot.
 ```
-U-boot# set ipaddr 192.168.208.121 # IP addr of BeagleBone
-U-boot# set serverip 192.168.208.48 # IP addr of PC
+U-Boot# set ipaddr 192.168.208.121 # IP addr of BeagleBone
+U-Boot# set serverip 192.168.208.48 # IP addr of PC
 
-U-boot# tftp 0x82000000 zImage # image file
-U-boot# tftp 0x88080000 ramdisk_img.gz # ramdisk
-U-boot# tftp 0x88000000 am335x-boneblack.dtb # device tree
+U-Boot# tftp 0x82000000 zImage # image file
+U-Boot# tftp 0x88080000 ramdisk_img.gz # ramdisk
+U-Boot# tftp 0x88000000 am335x-boneblack.dtb # device tree
 
-U-boot# set ramdisk root=/dev/ram rw initrd=0x88080000
-U-boot# set bootargs console=ttyO0,115200 $ramdisk
-U-boot# bootz 0x82000000 0x88080000: <size of ramdisk> 0x88000000
+U-Boot# set ramdisk root=/dev/ram rw initrd=0x88080000
+U-Boot# set bootargs console=ttyO0,115200 $ramdisk
+U-Boot# bootz 0x82000000 0x88080000: <size of ramdisk> 0x88000000
 ```
 
 ## Step 10: Configure the network on Beaglebone
@@ -206,4 +206,25 @@ $ route add default gw 192.168.208.254
 ```
 $ mkdir mnt
 $ mount 192.168.208.48:/srv/nfs4 mnt -o nolock,proto=tcp
+```
+
+## (Optional) Step 13: Boot via NFS
+Now that we have tested that the NFS works fine, why not have something interesting?
+1. Edit the file `/etc/exports` to add our new dir to NFS service. The file shall now look like this:
+```
+/srv/nfs4 *(rw,sync,no_subtree_check,no_root_squash)
+/srv/nfs4/nfsboot_rootfs *(rw,sync,no_subtree_check,no_root_squash)
+```
+2. Use `exportfs` to refresh the NFS configure of the host.
+3. Now try to boot via NFS:
+```
+U-Boot# setenv rootfs root=/dev/nfs rw nfsroot=<server_ip>:<Root_Dir>
+U-Boot# setenv nfsaddrs nfsaddrs=<ip>:<server_ip>:<gateway>:<mask>
+U-Boot# setenv bootargs console=ttyS0,115200 $rootfs $nfsaddrs
+```
+In my example, my input looks like this:
+```
+U-Boot# setenv rootfs root=/dev/nfs rw nfsroot=192.168.208.48:/srv/nfs4/nfsboot_rootfs
+U-Boot# setenv nfsaddrs nfsaddrs=192.168.208.121:192.168.208.48:192.168.208.254:255.255.255.0
+U-Boot# setenv bootargs console=ttyS0,115200 $rootfs $nfsaddrs
 ```
