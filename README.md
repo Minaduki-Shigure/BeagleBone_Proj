@@ -209,7 +209,7 @@ $ mount 192.168.208.48:/srv/nfs4 mnt -o nolock,proto=tcp
 ```
 
 ## (Optional) Step 13: Boot via NFS
-Now that we have tested that the NFS works fine, why not have something interesting?
+Now that we have comfirmed the NFS works properly, why not try something interesting?
 1. Edit the file `/etc/exports` to add our new dir to NFS service. The file shall now look like this:
 ```
 /srv/nfs4 *(rw,sync,no_subtree_check,no_root_squash)
@@ -218,13 +218,31 @@ Now that we have tested that the NFS works fine, why not have something interest
 2. Use `exportfs` to refresh the NFS configure of the host.
 3. Now try to boot via NFS:
 ```
+U-Boot# set ipaddr 192.168.208.121 # IP addr of BeagleBone
+U-Boot# set serverip 192.168.208.48 # IP addr of PC
+
+U-Boot# tftp 0x82000000 zImage # image file
+U-Boot# tftp 0x88000000 am335x-boneblack.dtb # device tree
+
 U-Boot# setenv rootfs root=/dev/nfs rw nfsroot=<server_ip>:<Root_Dir>
 U-Boot# setenv nfsaddrs nfsaddrs=<ip>:<server_ip>:<gateway>:<mask>
 U-Boot# setenv bootargs console=ttyS0,115200 $rootfs $nfsaddrs
+U-Boot# bootz 0x82000000 - 0x88000000
 ```
 In my example, my input looks like this:
 ```
-U-Boot# setenv rootfs root=/dev/nfs rw nfsroot=192.168.208.48:/srv/nfs4/nfsboot_rootfs
-U-Boot# setenv nfsaddrs nfsaddrs=192.168.208.121:192.168.208.48:192.168.208.254:255.255.255.0
+U-Boot# set ipaddr 192.168.208.121 # IP addr of BeagleBone
+U-Boot# set serverip 192.168.208.35 # IP addr of PC
+
+U-Boot# tftp 0x82000000 zImage # image file
+U-Boot# tftp 0x88000000 am335x-boneblack.dtb # device tree
+
+U-Boot# setenv rootfs root=/dev/nfs rw nfsroot=192.168.208.35:/srv/nfs4/nfsboot_rootfs
+U-Boot# setenv nfsaddrs nfsaddrs=192.168.208.121:192.168.208.35:192.168.208.254:255.255.255.0
 U-Boot# setenv bootargs console=ttyS0,115200 $rootfs $nfsaddrs
+U-Boot# bootz 0x82000000 - 0x88000000
 ```
+> **Attention please:**    
+The kernel I use (and provide) will use NFSv2 as default, if you are using later versions of NFS server, add `,vers=3`(using NFSv3) or `,vers=4`(using NFSv4) at the end of the `nfsroot` argument. Be advised that some of the NFSv4 servers defaultly refuses udp connections, if you do not want to modify your NFS server, you may add `,proto=tcp` to force the client to use tcp to connect.
+
+> If failed when trying to mount the NFS, you may add `nfsrootdebug` when setting bootargs, it will let the kernel print the DEBUG log and you may be able to analyze it to find your mistakes.
