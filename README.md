@@ -237,7 +237,7 @@ U-Boot# set serverip 192.168.208.35 # IP addr of PC
 U-Boot# tftp 0x82000000 zImage # image file
 U-Boot# tftp 0x88000000 am335x-boneblack.dtb # device tree
 
-U-Boot# setenv rootfs root=/dev/nfs rw nfsroot=192.168.208.35:/srv/nfs4/nfsboot_rootfs
+U-Boot# setenv rootfs root=/dev/nfs rw nfsroot=192.168.208.35:/srv/nfs4/nfsboot_rootfs,vers=3
 U-Boot# setenv nfsaddrs nfsaddrs=192.168.208.121:192.168.208.35:192.168.208.254:255.255.255.0
 U-Boot# setenv bootargs console=ttyS0,115200 $rootfs $nfsaddrs
 U-Boot# bootz 0x82000000 - 0x88000000
@@ -246,3 +246,6 @@ U-Boot# bootz 0x82000000 - 0x88000000
 The kernel I use (and provide) will use NFSv2 as default, if you are using later versions of NFS server, add `,vers=3`(using NFSv3) or `,vers=4`(using NFSv4) at the end of the `nfsroot` argument. Be advised that some of the NFSv4 servers defaultly refuses udp connections, if you do not want to modify your NFS server, you may add `,proto=tcp` to force the client to use tcp to connect.
 
 > If failed when trying to mount the NFS, you may add `nfsrootdebug` when setting bootargs, it will let the kernel print the DEBUG log and you may be able to analyze it to find your mistakes.
+
+## Step 13: Display via frame buffer
+1. Perparing: When compiling your kernel, enable `Device Drivers->Graphics support->DRM support for TI LCDC Display Controller` and `Device Drivers->Graphics support->I2C encoder or helper chips->NXP semiconductors TDA668X HDMI encoder`.
