@@ -7,19 +7,29 @@
 #include <sys/mman.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
 
 // draw a red point at (x, y) of color (Red/ Green /Blue)
-/*void fb_draw_back(struct fb_var_srceeninfo vinfo, int x, int y, char Red, char Green, char Blue){
-        int offset;
+static unsigned int *fbp;
+static int fd;
+
+void fb_draw_back(struct fb_var_screeninfo vinfo, int x, int y, char Red, char Green, char Blue){
+        long offset;
         short color;
         offset = (y * vinfo.xres + x) * vinfo.bits_per_pixel / 8;
-        color = (Red << 11) | (( Green << 5) & 0 x07E0 ) | (Blue & 0x1F );
+        color = ((Red << 8) & 0xF800) | ((Green << 3) & 0x07E0) | ((Blue >> 3) & 0x1F);
         *( unsigned char *)( fbp + offset + 0) = color & 0xFF;
         *( unsigned char *)( fbp + offset + 1) = ( color >> 8) & 0xFF;
 }
-*/
-static unsigned int *fbp;
-static int fd;
+
+void fb_rectangle(struct fb_var_screeninfo vinfo,int x,int y,int sx,int sy,char Red,char Green,char Blue){
+	
+	for (int i=0;i<sx;i++)
+		for (int j=0;j<sy;j++)
+		{
+			fb_draw_back(vinfo,x+i,y+j,Red,Green,Blue);
+		}
+}
 
 int fb_open(){
         int fd;
@@ -41,7 +51,7 @@ int fb_open(){
           perror("ioctl");
           return -1;
         }
-
+	printf("xres=%d\nyres=%d\nbit=%d\n",vinfo.xres,vinfo.yres,vinfo.bits_per_pixel);
 
         unsigned long screensize = vinfo.xres * vinfo.yres* vinfo.bits_per_pixel / 8;
 	fbp = (unsigned char *) mmap (0, screensize , PROT_READ | PROT_WRITE , MAP_SHARED , fd , 0);
@@ -49,10 +59,10 @@ int fb_open(){
         {                                
                 perror("mmap");          
                 return -1;                           
-        }                                                                            
-//      fb_draw_back( vinfo, 20, 20, 128, 0, 0);                                                     
-        memset(fbp, 255, screensize);                                                                 
-        sleep(100);
+        }
+        memset(fbp, 255, screensize);                                                                              
+        fb_rectangle(vinfo,20,20,200,100,0,255,255);
+	sleep(10);
 	munmap(fbp,screensize);                                                                      
         return 0;                                                                                    
 }                                                                                                    

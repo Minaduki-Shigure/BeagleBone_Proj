@@ -247,5 +247,14 @@ The kernel I use (and provide) will use NFSv2 as default, if you are using later
 
 > If failed when trying to mount the NFS, you may add `nfsrootdebug` when setting bootargs, it will let the kernel print the DEBUG log and you may be able to analyze it to find your mistakes.
 
+## (Unfinished)Step 13: Setup GDBserver on the BeagleBone
+1. Download gdb from the Internet, move in to dir `gdbserver` and run configure:
+```
+./configure --target=arm-linux --host=x86-linux
+```
+2. Make the program.
+
+
 ## Step 13: Display via frame buffer
 1. Perparing: When compiling your kernel, enable `Device Drivers->Graphics support->DRM support for TI LCDC Display Controller` and `Device Drivers->Graphics support->I2C encoder or helper chips->NXP semiconductors TDA668X HDMI encoder`.
+> Remember to pay attention to your memory! If your fbp pointer is a int there might be not enough memory!
