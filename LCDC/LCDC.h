@@ -18,6 +18,7 @@
 
 int fb_open(void);
 int fb_close(void);
+void printInfo(void);
 int fb_draw_back_888(int x, int y, char Red, char Green, char Blue);
 int fb_draw_back_565(int x, int y, u_int16_t color);
 int fb_clear_888(char Red, char Green, char Blue);
