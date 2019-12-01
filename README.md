@@ -44,6 +44,8 @@ $ apt-src install busybox
 > 2. Set `Cross compiler prefix` as `arm-linux-gnueabihf-`.
 > 3. (Optional) Set the destination for `make install`, you can found the built binaries there.
 > 4. (Optional) Remove some of the components if you want the binaries to be smaller.
+3. `make` and `make install` to generate the binaries.
+
 The busybox is now ready to deploy. We are going to use it in the following steps.
 
 ## Step 5: Prepare files for the file system.
@@ -166,7 +168,7 @@ tftpd:ALL
 in.tftpd:ALL
 ```
 3. (Optional) (For Manjaro) Edit `/etc/conf.d/tftpd` to modify the default workspace.
-3. (Optional) (For Ubuntu) Edit `/etc/default/tftpd` to modify the default workspace.
+3. (Optional) (For Ubuntu) Edit `/etc/default/tftpd-hpa` to modify the default workspace.
 4. (Optional) Use `chmod` to edit the permissions of the workspace.
 5. Start the service.
 ```
@@ -247,7 +249,7 @@ The kernel I use (and provide) will use NFSv2 as default, if you are using later
 
 > If failed when trying to mount the NFS, you may add `nfsrootdebug` when setting bootargs, it will let the kernel print the DEBUG log and you may be able to analyze it to find your mistakes.
 
-## (Unfinished)Step 13: Setup GDBserver on the BeagleBone
+## (Unfinished)Step 14: Setup GDBserver on the BeagleBone
 1. Download gdb from the Internet, move in to dir `gdbserver` and run configure:
 ```
 ./configure --target=arm-linux --host=x86-linux
@@ -255,6 +257,6 @@ The kernel I use (and provide) will use NFSv2 as default, if you are using later
 2. Make the program.
 
 
-## Step 13: Display via frame buffer
+## Step 15: Display via frame buffer
 1. Perparing: When compiling your kernel, enable `Device Drivers->Graphics support->DRM support for TI LCDC Display Controller` and `Device Drivers->Graphics support->I2C encoder or helper chips->NXP semiconductors TDA668X HDMI encoder`.
 > Remember to pay attention to your memory! If your fbp pointer is a int there might be not enough memory!
