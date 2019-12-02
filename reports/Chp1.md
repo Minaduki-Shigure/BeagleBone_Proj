@@ -300,8 +300,61 @@ $ gzip ramdisk_img
 将`root_fs`中的文件复制到`/srv/nfs4/nfsboot_rootfs`目录下，重新创建设备文件，NFS根文件系统准备完毕。
 
 ### 7.a U-Boot引导启动Linux-使用ramdisk作为根文件系统
+给开发板上电，在U-Boot引导开始前按下任意键进入自定义引导，然后输入以下命令配置引导：
+1. 使用`setenv`(可简写为set)命令配置开发板和上位机的IP地址，用于tftp功能。
+```
+U-Boot# set ipaddr 192.168.208.121 # IP addr of BeagleBone
+U-Boot# set serverip 192.168.208.35 # IP addr of PC
+```
+2. 使用`tftpboot`(可简写为tftp)命令分别将上位机tftp目录内的内核镜像、内存盘和设备树文件加载到内存的指定区域。
+```
+U-Boot# tftp 0x82000000 zImage # image file
+U-Boot# tftp 0x88080000 ramdisk_img.gz # ramdisk
+U-Boot# tftp 0x88000000 am335x-boneblack.dtb # device tree
+```
+3. 设置启动参数，设置文件系统根目录位于`/dev/ram`即内存上，权限为可读写，开始于地址`0x88080000`，启动后打开波特率为115200的串口终端`ttyO0`。
+```
+U-Boot# set ramdisk root=/dev/ram rw initrd=0x88080000
+U-Boot# set bootargs console=ttyO0,115200 $ramdisk
+```
+4. 使用`bootz`引导从指定地址的内核启动。
+```
+U-Boot# bootz 0x82000000 0x88080000:<size of ramdisk> 0x88000000
+```
+启动完毕，可以看见`/etc/motd`的内容被打印在了终端上：
+> TBD
 
 ### 7.b U-Boot引导启动Linux-使用NFS作为根文件系统
+给开发板上电，在U-Boot引导开始前按下任意键进入自定义引导，然后输入以下命令配置引导：
+1. 使用`setenv`(可简写为set)命令配置开发板和上位机的IP地址，用于tftp功能。
+```
+U-Boot# set ipaddr 192.168.208.121 # IP addr of BeagleBone
+U-Boot# set serverip 192.168.208.35 # IP addr of PC
+```
+2. 使用`tftpboot`(可简写为tftp)命令分别将上位机tftp目录内的内核镜像和设备树文件加载到内存的指定区域。由于使用NFS作为根文件系统，所以不需要下载内存盘文件。
+```
+U-Boot# tftp 0x82000000 zImage # image file
+U-Boot# tftp 0x88000000 am335x-boneblack.dtb # device tree
+```
+3. 设置启动参数，设置文件系统根目录位于`/dev/nfs`即NFS上，权限为可读写，NFS目录配置为192.168.208.35上的/srv/nfs4/nfsboot_rootfs目录，使用NFSv3协议版本。   
+NFS地址配置为本机IP是192.168.208.121，服务器IP是192.168.208.35，网关为192.168.208.254，掩码为255.255.255.0。
+```
+U-Boot# setenv rootfs root=/dev/nfs rw nfsroot=192.168.208.35:/srv/nfs4/nfsboot_rootfs,vers=3
+U-Boot# setenv nfsaddrs nfsaddrs=192.168.208.121:192.168.208.35:192.168.208.254:255.255.255.0
+```
+> **注意:**   
+内核在引导时默认会使用NFSv2协议版本进行连接，但是之前步骤配置的服务器只兼容NFSv3或更高的协议版本，如果不进行额外设置会导致启动时无法加载根文件系统而启动失败。   
+在`nfsroot`选项最后加上`vers=x`可以手动指定使用的NFS协议版本。   
+在部分使用NFSv4的服务器上，会强制要求使用TCP协议连接，而内核启动时并不会和服务器协商协议，就会启动失败。
+在`nfsroot`选项最后加上`proto=tcp`可以指定NFS使用TCP协议连接。
+4. 使用`bootz`引导从指定地址的内核启动。由于没有ramdisk，将其地址项留空为`-`。
+```
+U-Boot# bootz 0x82000000 - 0x88000000
+```
+启动完毕，可以看见内核配置网络和连接NFS的信息，也可以看见`/etc/motd`的内容被打印在了终端上：
+> TBD
+
+> 在设置启动参数时，可以加上`nfsrootdebug`选项，这样内核会输出所有关于NFS的调试信息，方便检查错误。
 
 ### 8. 配置网络并远程挂载NFS文件系统
 1. 使用`ifconfig`命令配置IP地址，默认的以太网接口名称为`eth0`。
@@ -320,3 +373,5 @@ $ mount 192.168.208.35:/srv/nfs4 mnt -o nolock,proto=tcp
 `proto=tcp`表示使用TCP协议，NFS默认使用UDP协议，使用TCP协议可以增强其稳定性。
 
 ### 9. 运行程序
+将第一步中编译处的`hellox86`和`helloarm`程序放入NFS共享目录中，在开发板上分别执行，结果如下：
+> 
