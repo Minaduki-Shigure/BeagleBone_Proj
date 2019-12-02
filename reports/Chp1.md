@@ -1,6 +1,6 @@
 # 数字系统II 实验 报告一
-Copyright (c) 2019 Minaduki Shigure.   
-南京大学 电子科学与工程学院 吴康正 171180571   
+Copyright (c) 2019 Minaduki Shigure.  
+南京大学 电子科学与工程学院 吴康正 171180571  
 项目repo地址：https://git.nju.edu.cn/Minaduki/beaglebone_proj
 
 ## 实验目的
@@ -94,7 +94,7 @@ $ arm-linux-gnueabigf-gcc -o helloarm helloworld.c
 1. 安装驱动：由于使用的PL2302HXA串口线年代久远，Windows 10官方提供的驱动已经不能使用，需要前往[第三方网站]("http://www.ifamilysoftware.com/news37.html")下载破解版驱动才能正常工作。
 2. 安装完成驱动后，打开Windows设备管理器，在`端口(COM和LPT)`项目中找到`Prolific USB-to-Serial Comm Port (COMx)`，记下x的值，在我的电脑中为`COM4`。
 ![Windows设备管理器](./pic/serial_com4.png)
-3. 打开Xshell，选择新建一个会话，连接协议选择`SERIAL`，然后在属性菜单中，切换至SERIAL项目，将PORT设置为设备管理器内的值(即COM4)，波特率设为115200，数据位8位，停止位1位，无奇偶检验与流控制。Xshell即配置完成。   
+3. 打开Xshell，选择新建一个会话，连接协议选择`SERIAL`，然后在属性菜单中，切换至SERIAL项目，将PORT设置为设备管理器内的值(即COM4)，波特率设为115200，数据位8位，停止位1位，无奇偶检验与流控制。Xshell即配置完成。  
 ![Xshell Config](./pic/xshell_config.png)
 
 #### 1.3 配置tftp服务
@@ -136,8 +136,8 @@ $ sudo apt install nfs-kernel-server
 /srv/nfs4 *(rw,sync,no_subtree_check,no_root_squash)
 /srv/nfs4/nfsboot_rootfs *(rw,sync,no_subtree_check,no_root_squash)
 ```
-> 对于每一行记录，第一部分代表共享的目录，这里的两个目录分别用作NFS文件共享和NFS启动根文件系统。   
-第二部分的括号前部分代表允许连接的客户端，*号代表允许所有人连接。   
+> 对于每一行记录，第一部分代表共享的目录，这里的两个目录分别用作NFS文件共享和NFS启动根文件系统。  
+第二部分的括号前部分代表允许连接的客户端，*号代表允许所有人连接。  
 括号内的部分代表共享属性配置，`rw`指允许读写，`sync`指文件更改将实时在所有挂载客户端同步，`no_subtree_check`指不检查父目录的权限，`no_root_squash`指对于连接的客户端如果是超级用户身份，则对于NFS目录也是超级用户身份。
 3. 为了方便后续操作，在桌面上创建NFS共享目录的软链接：
 ```
@@ -150,23 +150,23 @@ $ ln -s /srv/nfs4 ~/Desktop/nfsroot
 ### 2. 配置内核Makefile
 1. 源码中提供了对于BeagleBone的默认配置文件，位于`./arch/arm/configs/bb.org_defconfig`，使用`make bb.org_defconfig ARCH=arm`命令应用默认配置。
 2. 在默认配置的基础上，还可以使用`make menuconfig ARCH=arm`对内核进行进一步的自定义，只需要保证如下条件满足：
-> General setup:   
-启用`Initial RAM filesystem and RAM disk (initramfs/initrd) support`以支持ramdisk。   
+> General setup:  
+启用`Initial RAM filesystem and RAM disk (initramfs/initrd) support`以支持ramdisk。  
 启用`Support initial ramdisks compressed using gzip`以支持压缩ramdisk节省内存空间。
 
-> Enable loadable module support:   
+> Enable loadable module support:  
 启用此项，这样可以使不常用的功能以模块的形式存在，减小内核尺寸，增加系统灵活性。
 
-> System type:   
+> System type:  
 设置目标处理器的架构，只需保证`TI OMAP/AM/DM/DRA Family`中的`TI AM33XX`项目选中即可。
 
-> Networking support:   
+> Networking support:  
 启用`TCP/IP networking`。
 
-> Device drivers:   
+> Device drivers:  
 在`Block devices`选项中，启用`RAM block device support`，以支持ramdisk。
 
-> File systems:   
+> File systems:  
 启用`Network File Systems`，以支持NFS协议挂载。
 
 3. 保存配置为文件`.config`，内核配置完成。
@@ -193,8 +193,8 @@ $ apt-src install busybox
 3. 先后运行`make`和`make install`，生成目标机器使用的busybox文件。busybox文件准备完成。
 > 也可以在`make install`时通过`--prefix=`指定安装目录。
 
-> **Why not sudo?**   
-如果可以以普通用户执行，就最好不要切换成超级用户，比如如果没有设置安装目录就执行了`make install`，busybox则会安装到默认的`/usr`目录下(并替换原有的文件)，这样上位机原有的busybox就完全不能使用了。   
+> **Why not sudo?**  
+如果可以以普通用户执行，就最好不要切换成超级用户，比如如果没有设置安装目录就执行了`make install`，busybox则会安装到默认的`/usr`目录下(并替换原有的文件)，这样上位机原有的busybox就完全不能使用了。  
 另外对于一些需要超级用户权限但不会造成很大影响的软件(如minicom)，可以使用`sudo chmod +s`命令修改，文件之后就会以超级用户身份运行。
 
 ### 5. 准备根文件系统内容
@@ -246,9 +246,9 @@ $ sudo mknod zero c 1 5
 > 需要注意的是，设备文件是不可以移动的，因此此处只是一个示例，在生成文件系统镜像时应该重新创建设备文件而非复制此处的文件。
 6. 在根目录下创建空目录`proc`和`sys`，供PROC和SYSFS文件系统使用。
 7. 在根目录下创建目录`lib`，从交叉编译工具链的链接库路径(/usr/arm-linux-gnueabihf/lib)下将如下文件复制到`lib`目录下：
-> ld-2.30.so   
-> libc-2.30.so   
-> libm-2.30.so   
+> ld-2.30.so  
+> libc-2.30.so  
+> libm-2.30.so  
 
 > 库文件的文件名会随版本号变化，可能不是2.30。
 8. 为库文件创建符号链接：
@@ -365,9 +365,9 @@ NFS地址配置为本机IP是192.168.208.121，服务器IP是192.168.208.35，�
 U-Boot# setenv rootfs root=/dev/nfs rw nfsroot=192.168.208.35:/srv/nfs4/nfsboot_rootfs,vers=3
 U-Boot# setenv nfsaddrs nfsaddrs=192.168.208.121:192.168.208.35:192.168.208.254:255.255.255.0
 ```
-> **注意:**   
-内核在引导时默认会使用NFSv2协议版本进行连接，但是之前步骤配置的服务器只兼容NFSv3或更高的协议版本，如果不进行额外设置会导致启动时无法加载根文件系统而启动失败。   
-在`nfsroot`选项最后加上`vers=x`可以手动指定使用的NFS协议版本。   
+> **注意:**  
+内核在引导时默认会使用NFSv2协议版本进行连接，但是之前步骤配置的服务器只兼容NFSv3或更高的协议版本，如果不进行额外设置会导致启动时无法加载根文件系统而启动失败。  
+在`nfsroot`选项最后加上`vers=x`可以手动指定使用的NFS协议版本。  
 在部分使用NFSv4的服务器上，会强制要求使用TCP协议连接，而内核启动时并不会和服务器协商协议，就会启动失败。
 在`nfsroot`选项最后加上`proto=tcp`可以指定NFS使用TCP协议连接。
 
@@ -422,7 +422,7 @@ U-Boot# bootz 0x82000000 - 0x88000000
 Please press Enter to activate this console.                                    
 / # 
 ```
-> 这里的回显信息是后来在隔壁教室补录的，因此IP地址和实际实验时有不同，在启动时添加了`nfsrootdebug`到启动参数中，显示了加载文件系统时的具体步骤。   
+> 这里的回显信息是后来在隔壁教室补录的，因此IP地址和实际实验时有不同，在启动时添加了`nfsrootdebug`到启动参数中，显示了加载文件系统时的具体步骤。  
 可以看见系统首先初始化了网络接口，配置了IP地址等网络参数，然后使用预设的NFS参数连接到了NFS服务器，挂载了文件系统，最后按照初始化表的配置执行了系统启动脚本，打印了motd到终端。
 
 ### 8. 配置网络并远程挂载NFS文件系统
@@ -437,8 +437,8 @@ $ route add default gw 192.168.208.254
 $ mkdir mnt
 $ mount 192.168.208.35:/srv/nfs4 mnt -o nolock,proto=tcp
 ```
-> 使用`-o`指定挂载选项，逗号隔开：   
-`nolock`表示不使用文件锁，因为文件锁依赖于portmap提供的动态端口分配功能，开发板上并没有portmap程序，因此使用文件锁会使系统卡死。   
+> 使用`-o`指定挂载选项，逗号隔开：  
+`nolock`表示不使用文件锁，因为文件锁依赖于portmap提供的动态端口分配功能，开发板上并没有portmap程序，因此使用文件锁会使系统卡死。  
 `proto=tcp`表示使用TCP协议，NFS默认使用UDP协议，使用TCP协议可以增强其稳定性。
 
 ### 9. 运行程序
