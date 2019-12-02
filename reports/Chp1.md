@@ -322,7 +322,30 @@ U-Boot# set bootargs console=ttyO0,115200 $ramdisk
 U-Boot# bootz 0x82000000 0x88080000:<size of ramdisk> 0x88000000
 ```
 启动完毕，可以看见`/etc/motd`的内容被打印在了终端上：
-> TBD
+```
+[    2.680353] RAMDISK: gzip image found at block 0                             
+[    2.930894] EXT4-fs (ram0): couldn't mount as ext3 due to feature incompatibs
+[    2.939187] EXT4-fs (ram0): mounting ext2 file system using the ext4 subsystm
+[    2.948891] EXT4-fs (ram0): mounted filesystem without journal. Opts: (null) 
+[    2.956316] VFS: Mounted root (ext2 filesystem) on device 1:0.               
+[    2.962502] devtmpfs: mounted                                                
+[    2.966641] Freeing unused kernel memory: 780K                               
+                                                                                
+#  .88b  d88. d888888b d8b   db  .d8b.  d8888b. db    db db   dD d888888b       
+#  88'YbdP`88   `88'   888o  88 d8' `8b 88  `8D 88    88 88 ,8P'   `88'         
+#  88  88  88    88    88V8o 88 88ooo88 88   88 88    88 88,8P      88          
+#  88  88  88    88    88 V8o88 88~~~88 88   88 88    88 88`8b      88          
+#  88  88  88   .88.   88  V888 88   88 88  .8D 88b  d88 88 `88.   .88.         
+#  YP  YP  YP Y888888P VP   V8P YP   YP Y8888D' ~Y8888P' YP   YD Y888888P       
+# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::      
+#                Linux 4.4.155 on BeagleBone Black am335x.                      
+#       Powered by MINADUKI Technologies 2019. All rights reserved.             
+# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::      
+                                                                                
+Please press Enter to activate this console.                                    
+/ # 
+```
+> 在motd之前打印的部分是系统启动时一些挂载内存盘的输出提示信息，可以看见系统发现了压缩过的内存盘，并且识别出其文件系统为ext2，然后执行了挂载。
 
 ### 7.b U-Boot引导启动Linux-使用NFS作为根文件系统
 给开发板上电，在U-Boot引导开始前按下任意键进入自定义引导，然后输入以下命令配置引导：
@@ -347,14 +370,60 @@ U-Boot# setenv nfsaddrs nfsaddrs=192.168.208.121:192.168.208.35:192.168.208.254:
 在`nfsroot`选项最后加上`vers=x`可以手动指定使用的NFS协议版本。   
 在部分使用NFSv4的服务器上，会强制要求使用TCP协议连接，而内核启动时并不会和服务器协商协议，就会启动失败。
 在`nfsroot`选项最后加上`proto=tcp`可以指定NFS使用TCP协议连接。
+
+> 在设置启动参数时，可以加上`nfsrootdebug`选项，这样内核会输出所有关于NFS的调试信息，方便检查错误。
 4. 使用`bootz`引导从指定地址的内核启动。由于没有ramdisk，将其地址项留空为`-`。
 ```
 U-Boot# bootz 0x82000000 - 0x88000000
 ```
 启动完毕，可以看见内核配置网络和连接NFS的信息，也可以看见`/etc/motd`的内容被打印在了终端上：
-> TBD
-
-> 在设置启动参数时，可以加上`nfsrootdebug`选项，这样内核会输出所有关于NFS的调试信息，方便检查错误。
+```
+[    2.656891] net eth0: initializing cpsw version 1.12 (0)                     
+[    2.662286] net eth0: initialized cpsw ale version 1.4                       
+[    2.667468] net eth0: ALE Table size 1024                                    
+[    2.674116] net eth0: phy found : id is : 0x7c0f1                            
+[    2.685212] IPv6: ADDRCONF(NETDEV_UP): eth0: link is not ready               
+[    6.704994] cpsw 4a100000.ethernet eth0: Link is Up - 100Mbps/Full - flow cof
+[    6.713042] IPv6: ADDRCONF(NETDEV_CHANGE): eth0: link becomes ready          
+[    6.728663] IP-Config: Complete:                                             
+[    6.731940]      device=eth0, hwaddr=78:a5:04:fe:27:da, ipaddr=192.168.207.14
+[    6.742725]      host=192.168.207.121, domain=, nis-domain=(none)            
+[    6.748865]      bootserver=192.168.207.2, rootserver=192.168.207.2, rootpat=
+[    6.757292] Root-NFS: nfsroot=/srv/nfs4/nfsboot_rootfs,vers=3                
+[    6.764261] NFS: nfs mount opts='vers=2,udp,rsize=4096,wsize=4096,vers=3,nol'
+[    6.773457] NFS:   parsing nfs mount option 'vers=2'                         
+[    6.778487] NFS:   parsing nfs mount option 'udp'                            
+[    6.783230] NFS:   parsing nfs mount option 'rsize=4096'                     
+[    6.788589] NFS:   parsing nfs mount option 'wsize=4096'                     
+[    6.793941] NFS:   parsing nfs mount option 'vers=3'                         
+[    6.798945] NFS:   parsing nfs mount option 'nolock'                         
+[    6.803945] NFS:   parsing nfs mount option 'addr=192.168.207.2'             
+[    6.810103] NFS: MNTPATH: '/srv/nfs4/nfsboot_rootfs'                         
+[    6.815231] NFS: sending MNT request for 192.168.207.2:/srv/nfs4/nfsboot_roos
+[    6.827285] NFS: received 1 auth flavors                                     
+[    6.831348] NFS:   auth flavor[0]: 1                                         
+[    6.835215] NFS: MNT request succeeded                                       
+[    6.839023] NFS: attempting to use auth flavor 1                             
+[    6.852876] VFS: Mounted root (nfs filesystem) on device 0:17.               
+[    6.859694] devtmpfs: mounted                                                
+[    6.863840] Freeing unused kernel memory: 780K                               
+                                                                                
+#  .88b  d88. d888888b d8b   db  .d8b.  d8888b. db    db db   dD d888888b       
+#  88'YbdP`88   `88'   888o  88 d8' `8b 88  `8D 88    88 88 ,8P'   `88'         
+#  88  88  88    88    88V8o 88 88ooo88 88   88 88    88 88,8P      88          
+#  88  88  88    88    88 V8o88 88~~~88 88   88 88    88 88`8b      88          
+#  88  88  88   .88.   88  V888 88   88 88  .8D 88b  d88 88 `88.   .88.         
+#  YP  YP  YP Y888888P VP   V8P YP   YP Y8888D' ~Y8888P' YP   YD Y888888P       
+# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::      
+#                Linux 4.4.155 on BeagleBone Black am335x.                      
+#       Powered by MINADUKI Technologies 2019. All rights reserved.             
+# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::      
+                                                                                
+Please press Enter to activate this console.                                    
+/ # 
+```
+> 这里的回显信息是后来在隔壁教室补录的，因此IP地址和实际实验时有不同，在启动时添加了`nfsrootdebug`到启动参数中，显示了加载文件系统时的具体步骤。   
+可以看见系统首先初始化了网络接口，配置了IP地址等网络参数，然后使用预设的NFS参数连接到了NFS服务器，挂载了文件系统，最后按照初始化表的配置执行了系统启动脚本，打印了motd到终端。
 
 ### 8. 配置网络并远程挂载NFS文件系统
 1. 使用`ifconfig`命令配置IP地址，默认的以太网接口名称为`eth0`。
@@ -373,5 +442,33 @@ $ mount 192.168.208.35:/srv/nfs4 mnt -o nolock,proto=tcp
 `proto=tcp`表示使用TCP协议，NFS默认使用UDP协议，使用TCP协议可以增强其稳定性。
 
 ### 9. 运行程序
-将第一步中编译处的`hellox86`和`helloarm`程序放入NFS共享目录中，在开发板上分别执行，结果如下：
-> 
+将第一步中编译出的`hellox86`和`helloarm`程序放入NFS共享目录中，在开发板上分别执行，结果如下：
+```
+/mnt # ls -al                                                                   
+total 80                                                                        
+drwxrwxrwx    4 0        0             4096 Nov 26  2019 .                      
+drwxrwxrwx   11 1000     1000          4096 Nov 19  2019 ..                     
+drwxr-xr-x   17 1000     1000          4096 Nov 26  2019 gdb-8.3                
+-rwxr-xr-x    1 1000     1000          8156 Nov 12  2019 helloarm               
+-rwxr-xr-x    1 1000     1000          8036 Nov 22  2019 helloarmv6             
+-rw-r--r--    1 1000     1000           124 Nov 12  2019 helloworld.c           
+-rwxr-xr-x    1 1000     1000         16704 Nov 12  2019 hellox86               
+-rwxr-xr-x    1 1000     1000         22636 Nov 26  2019 main                   
+drwxrwxrwx   11 1000     1000          4096 Nov 19  2019 nfsboot_rootfs         
+```
+在上面可以看到目录中有三个程序，分别是用上位机系统中的`gcc`直接编译的`hellox86`，用`arm-linux-gnueabi-gcc`编译的`helloarmv6`和用`arm-linux-gnueabihf-gcc`编译的`helloarm`。
+1. `hellox86`是在x86_64平台上运行的，在BeagleBone上执行会报错。
+```
+/mnt # ./hellox86                                                               
+./hellox86: line 1: syntax error: unexpected "("  
+```
+2. `helloarmv6`是在没有硬件浮点单元的平台上运行的(如树莓派Zero)，如果在BeagleBone上执行也会提示错误。
+```                              
+/mnt # ./helloarmv6                                                             
+-/bin/sh: ./helloarmv6: not found    
+```
+3. `helloarm`是使用了对应BeagleBone平台armv8处理器的编译器编译的，因此可以正常运行。
+```                                           
+/mnt # ./helloarm                                                               
+Hello world! 
+```
