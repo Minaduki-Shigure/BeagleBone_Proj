@@ -10,6 +10,7 @@ int main(int argc, char* argv[])
 
     Clear(WHITE);
     DrawLine(300, 300, 600, 600, BLUE);
+    DrawLine(0, 0, 200, 200, RED);
     //DrawPoint(300, 200, BLUE);
 
     fb_close();

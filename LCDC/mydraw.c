@@ -143,3 +143,50 @@ void DrawLine_RGB(int x1, int y1, int x2, int y2, char red, char green, char blu
 		} 
 	}  
 }    
+
+void DrawRectangle(int x1, int y1, int x2, int y2, u_int16_t color)
+{
+	DrawLine(x1, y1, x2, y1, color);
+	DrawLine(x1, y1, x1, y2, color);
+	DrawLine(x1, y2, x2, y2, color);
+	DrawLine(x2, y1, x2, y2, color);
+}
+
+void DrawRectangle_RGB(int x1, int y1, int x2, int y2, char red, char green, char blue)
+{
+	DrawLine_RGB(x1, y1, x2, y1, red, green, blue);
+	DrawLine_RGB(x1, y1, x1, y2, red, green, blue);
+	DrawLine_RGB(x1, y2, x2, y2, red, green, blue);
+	DrawLine_RGB(x2, y1, x2, y2, red, green, blue);
+}
+
+void DrawCircle(int x0, int y0, int r, u_int16_t color)
+{
+	int a, b;
+	int di;
+	a = 0;
+    b = r;	  
+	di = 3 - (r << 1);             //判断下个点位置的标志
+	while (a <= b)
+	{
+		DrawPoint(x0 + a, y0 - b, color);             //5
+ 		DrawPoint(x0 + b, y0 - a, color);             //0           
+		DrawPoint(x0 + b, y0 + a, color);             //4               
+		DrawPoint(x0 + a, y0 + b, color);             //6 
+		DrawPoint(x0 - a, y0 + b, color);             //1       
+ 		DrawPoint(x0 - b, y0 + a, color);             
+		DrawPoint(x0 - a, y0 - b, color);             //2             
+  		DrawPoint(x0 - b, y0 - a, color);             //7     	         
+		++a;
+		//使用Bresenham算法画圆     
+		if (di < 0)
+        {
+            di += 4 * a + 6;
+        }	  
+		else
+		{
+			di += 10 + 4 * (a - b);   
+			--b;
+		} 						    
+	}
+} 	

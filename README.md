@@ -252,7 +252,7 @@ The kernel I use (and provide) will use NFSv2 as default, if you are using later
 ## (Unfinished)Step 14: Setup GDBserver on the BeagleBone
 1. Download gdb from the Internet, move in to dir `gdbserver` and run configure:
 ```
-./configure --target=arm-linux --host=x86-linux
+$ ./configure --target=arm-linux --host=x86-linux
 ```
 2. Make the program.
 
@@ -260,3 +260,14 @@ The kernel I use (and provide) will use NFSv2 as default, if you are using later
 ## Step 15: Display via frame buffer
 1. Perparing: When compiling your kernel, enable `Device Drivers->Graphics support->DRM support for TI LCDC Display Controller` and `Device Drivers->Graphics support->I2C encoder or helper chips->NXP semiconductors TDA668X HDMI encoder`.
 > Remember to pay attention to your memory! If your fbp pointer is a int there might be not enough memory!
+
+> **When your screen displays "No Signal"...**  
+*This requires you mount sysfs in advance, add the following content to your `etc/rc`*
+```
+mount -t sysfs sys /sys
+```
+> The run the following commands:
+```
+# cd /sys/class/graphics/fb0
+# echo "Whatever you like" > blank
+```
