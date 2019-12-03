@@ -29,12 +29,16 @@
 #define LGRAYBLUE       0XA651 //浅灰蓝色(中间层颜色)
 #define LBBLUE          0X2B12 //浅棕蓝色(选择条目的反色)
 
+void Clear(u_int16_t color);
 void DrawPoint(int x, int y, u_int16_t color);
 void DrawLine(int x1, int y1, int x2, int y2, u_int16_t color);
-void Clear(u_int16_t color);
+void DrawRectangle(int x1, int y1, int x2, int y2, u_int16_t color);
+void DrawCircle(int x0, int y0, int r, u_int16_t color);
 
+void Clear_RGB(char red, char green, char blue);
 void DrawPoint_RGB(int x, int y, char red, char green, char blue);
 void DrawLine_RGB(int x1, int y1, int x2, int y2, char red, char green, char blue);
-void Clear_RGB(char red, char green, char blue);
+void DrawRectangle_RGB(int x1, int y1, int x2, int y2, char red, char green, char blue);
+void DrawCircle_RGB(int x0, int y0, int r, char red, char green, char blue);
 
 #endif
