@@ -1,11 +1,21 @@
 CC = arm-linux-gnueabihf-gcc
 CFLAGS = -Wall -g
 CPPFLAGS = -fPIC
+LFLAGS = -L. -lgraphics
 target = main
-source = main.c LCDC.c mydraw.c
+object = LCDC.o mydraw.o
+mainobj = main.o
+lib = libgraphics.so
 
-$(target): $(source)
+$(target): $(object) $(mainobj)
 	$(CC) $(CFLAGS) $(CPPFLAGS) -o $@ $^
 
+install: main.c $(object) 
+	$(CC) $(CFLAGS) $(CPPFLAGS) -shared -o $(lib) $(object)
+	$(CC) $(CFLAGS) -o $(target) $< $(LFLAGS)
+
+%.o: %.c
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c $<
+
 clean:
-	rm -rf $(target)
+	rm -rf $(target) *.o *.so
