@@ -10,9 +10,11 @@ lib = libgraphics.so
 $(target): $(object) $(mainobj)
 	$(CC) $(CFLAGS) $(CPPFLAGS) -o $@ $^
 
-install: main.c $(object) 
-	$(CC) $(CFLAGS) $(CPPFLAGS) -shared -o $(lib) $(object)
+install: main.c $(lib) 
 	$(CC) $(CFLAGS) -o $(target) $< $(LFLAGS)
+
+$(lib): $(object)
+	$(CC) $(CFLAGS) $(CPPFLAGS) -shared -o $@ $^
 
 %.o: %.c
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c $<

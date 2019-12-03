@@ -23,10 +23,15 @@ int fb_open(void)
         return VINFO_READ_FAILED;
     }
 
+    //vinfo.xres = 1920;
+    //vinfo.yres = 1080;
+    //vinfo.xres_virtual = 960;
+    //vinfo.yres_virtual = 540;
+    
 	//printf("xres=%d\nyres=%d\nbit=%d\n", vinfo.xres, vinfo.yres, vinfo.bits_per_pixel);
     printInfo();
 
-    screen_size = vinfo.xres * vinfo.yres * vinfo.bits_per_pixel / 8;
+    screen_size = vinfo.xres_virtual * vinfo.yres_virtual * vinfo.bits_per_pixel / 8;
 	
     fbp = (unsigned char*)mmap(0, screen_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     //printf("%p\n", fbp);

@@ -18,6 +18,8 @@ int main(int argc, char* argv[])
     ShowNum(320, 320, 4396, 4, 32, BLACK);
     ShowFloat(450, 450, 2200.28, 3, 8, 32, BLACK);
     ShowString(240, 240, 500, 50, 32, "Hello world!", RED);
+    DrawCircle(600, 600, 80, RED);
+    ShowString(480, 360, 500, 50, 32, "By Minaduki Shigure.", BLUE);
     //DrawPoint(300, 200, BLUE);
 
     fb_close();
