@@ -1,7 +1,7 @@
 #include "LCDC.h"
 
 static int fd;
-static struct fb_var_screeninfo vinfo;
+struct fb_var_screeninfo vinfo;
 static char* fbp;
 unsigned long screen_size;
 

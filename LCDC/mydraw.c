@@ -1,4 +1,5 @@
 #include "mydraw.h"
+#include "FONT.H"
 
 void Clear(u_int16_t color)
 {
@@ -220,4 +221,320 @@ void DrawCircle_RGB(int x0, int y0, int r, char red, char green, char blue)
 			--b;
 		}
 	}
+}
+
+void ShowChar(int x, int y, char content, int size, u_int16_t color)
+{  							  
+    unsigned char temp, t1, t;
+	int y0 = y;
+	u_int8_t csize = (size / 8 + ((size % 8) ? 1 : 0)) * (size / 2);		//得到字体一个字符对应点阵集所占的字节数	
+ 	content = content - ' ';//得到偏移后的值（ASCII字库是从空格开始取模，所以-' '就是对应字符的字库）
+	for (t = 0; t < csize; ++t)
+	{   
+		if (size == 12)
+        {
+            temp = asc2_1206[content][t]; 	 	//调用1206字体
+        }
+        else if (size == 16)
+        {
+            temp = asc2_1608[content][t];	//调用1608字体
+        }
+		else if (size == 24)
+        {
+            temp = asc2_2412[content][t];	//调用2412字体
+        }
+		else if (size == 32)
+        {
+            temp = asc2_3216[content][t];  //调用3216字体
+        }
+		else
+        {
+            return;								//没有的字库
+        }
+		for (t1 = 0; t1 < 8; ++t1)
+		{			    
+			if (temp & 0x80)
+            {
+                DrawPoint(x, y, color);
+            }
+			temp <<= 1;
+			++y;
+			if (y >= vinfo.yres)
+            {
+                return;		//超区域了
+            }
+			if ((y - y0) == size)
+			{
+				y = y0;
+				++x;
+				if (x >= vinfo.xres)
+                {
+                    return;	//超区域了
+                }
+				break;
+			}
+		}
+	}  	 	  
+}
+
+void ShowChar_RGB(int x, int y, char content, int size, char red, char green, char blue)
+{  							  
+    unsigned char temp, t1, t;
+	int y0 = y;
+	u_int8_t csize = (size / 8 + ((size % 8) ? 1 : 0)) * (size / 2);		//得到字体一个字符对应点阵集所占的字节数	
+ 	content = content - ' ';//得到偏移后的值（ASCII字库是从空格开始取模，所以-' '就是对应字符的字库）
+	for (t = 0; t < csize; ++t)
+	{   
+		if (size == 12)
+        {
+            temp = asc2_1206[content][t]; 	 	//调用1206字体
+        }
+        else if (size == 16)
+        {
+            temp = asc2_1608[content][t];	//调用1608字体
+        }
+		else if (size == 24)
+        {
+            temp = asc2_2412[content][t];	//调用2412字体
+        }
+		else if (size == 32)
+        {
+            temp = asc2_3216[content][t];  //调用3216字体
+        }
+		else
+        {
+            return;								//没有的字库
+        }
+		for (t1 = 0; t1 < 8; ++t1)
+		{			    
+			if (temp & 0x80)
+            {
+                DrawPoint_RGB(x, y, red, green, blue);
+            }
+			temp <<= 1;
+			++y;
+			if (y >= vinfo.yres)
+            {
+                return;		//超区域了
+            }
+			if ((y - y0) == size)
+			{
+				y = y0;
+				++x;
+				if (x >= vinfo.xres)
+                {
+                    return;	//超区域了
+                }
+				break;
+			}
+		}
+	}  	 	  
+}
+
+long Pow(int m, int n)
+{
+	long result = 1;	 
+	while (n--)
+    {
+        result *= m; 
+    }   
+	return result;
+}	
+
+void ShowNum(int x, int y, long num, u_int8_t len, int size, u_int16_t color)
+{         	
+	u_int8_t t, temp;
+	u_int8_t enshow = 0;						   
+	for (t = 0; t < len; ++t)
+	{
+		temp = (num / Pow(10, len - t - 1)) % 10;
+		if ((enshow == 0) && t < (len - 1))
+		{
+			if (temp == 0)
+			{
+				ShowChar(x + (size / 2) * t, y, ' ', size, color);
+				continue;
+			}
+            else
+            {
+                enshow = 1;
+            }
+		 	 
+		}
+	 	ShowChar(x + (size / 2) * t, y, temp + '0', size, color); 
+	}
+}
+
+void ShowNum_RGB(int x, int y, long num, u_int8_t len, int size, char red, char green, char blue)
+{         	
+	u_int8_t t, temp;
+	u_int8_t enshow = 0;						   
+	for (t = 0; t < len; ++t)
+	{
+		temp = (num / Pow(10, len - t - 1)) % 10;
+		if ((enshow == 0) && t < (len - 1))
+		{
+			if (temp == 0)
+			{
+				ShowChar_RGB(x + (size / 2) * t, y, ' ', size, red, green, blue);
+				continue;
+			}
+            else
+            {
+                enshow = 1;
+            }
+		 	 
+		}
+	 	ShowChar_RGB(x + (size / 2) * t, y, temp + '0', size, red, green, blue); 
+	}
+} 
+
+void ShowFloat(int x, int y, double num, u_int8_t precision, u_int8_t len, u_int8_t size, u_int16_t color)
+{
+	u_int8_t t, psign = 0, pint = 0, pdec = 0;
+	u_int8_t interger[DEF_SIZE], decimal[DEF_SIZE];
+	u_int64_t tempint, tempdec;
+	if (num < 0)
+	{
+		psign = 1;
+		tempint = -num;
+		tempdec = (-num - tempint * 1.0) * Pow(10, precision);
+	}
+	else
+	{
+		tempint = num;
+		tempdec = (num - tempint * 1.0) * Pow(10, precision);
+	}
+	do
+	{
+		interger[pint++] = tempint % 10;
+		tempint /= 10;
+	}while (tempint != 0);
+	
+	for (pdec = 0; pdec < precision; ++pdec)
+	{
+		decimal[pdec] = tempdec % 10;
+		tempdec /= 10;
+	}
+	
+	if (psign)
+    {
+		ShowChar(x, y, '-', size, color);
+    }
+	for (t = psign; t < len; ++t)
+	{
+		if (t < pint + psign)
+        {
+			ShowChar(x + (size / 2) * t, y, interger[pint - 1 - (t - psign)] + '0', size, color);
+        }
+		else if (t == pint + psign)
+        {
+			ShowChar(x + (size / 2) * t, y, '.', size, color);
+        }
+        else if (t < (pint + pdec + 1 + psign))
+        {
+			ShowChar(x + (size / 2) * t, y, decimal[pint + pdec - (t - psign)] + '0', size, color);	
+        }
+        else
+        {
+			ShowChar(x + (size / 2) * t, y, ' ', size, color);
+        }
+	}
+}
+
+void ShowFloat_RGB(int x, int y, double num, u_int8_t precision, u_int8_t len, u_int8_t size, char red, char green, char blue)
+{
+	u_int8_t t, psign = 0, pint = 0, pdec = 0;
+	u_int8_t interger[DEF_SIZE], decimal[DEF_SIZE];
+	u_int64_t tempint, tempdec;
+	if (num < 0)
+	{
+		psign = 1;
+		tempint = -num;
+		tempdec = (-num - tempint * 1.0) * Pow(10, precision);
+	}
+	else
+	{
+		tempint = num;
+		tempdec = (num - tempint * 1.0) * Pow(10, precision);
+	}
+	do
+	{
+		interger[pint++] = tempint % 10;
+		tempint /= 10;
+	}while (tempint != 0);
+	
+	for (pdec = 0; pdec < precision; ++pdec)
+	{
+		decimal[pdec] = tempdec % 10;
+		tempdec /= 10;
+	}
+	
+	if (psign)
+    {
+		ShowChar_RGB(x, y, '-', size, red, green, blue);
+    }
+	for (t = psign; t < len; ++t)
+	{
+		if (t < pint + psign)
+        {
+			ShowChar_RGB(x + (size / 2) * t, y, interger[pint - 1 - (t - psign)] + '0', size, red, green, blue);
+        }
+		else if (t == pint + psign)
+        {
+			ShowChar_RGB(x + (size / 2) * t, y, '.', size, red, green, blue);
+        }
+        else if (t < (pint + pdec + 1 + psign))
+        {
+			ShowChar_RGB(x + (size / 2) * t, y, decimal[pint + pdec - (t - psign)] + '0', size, red, green, blue);	
+        }
+        else
+        {
+			ShowChar_RGB(x + (size / 2) * t, y, ' ', size, red, green, blue);
+        }
+	}
+}
+
+void ShowString(int x, int y, int width, int height, u_int8_t size, char *p, u_int16_t color)
+{         
+	u_int8_t x0 = x;
+	width += x;
+	height += y;
+    while ((*p <= '~') && (*p >= ' '))//判断是不是非法字符!
+    {       
+        if (x>=width)
+        {
+            x = x0;
+            y += size;
+        }
+        if (y >= height)
+        {
+            break;//退出
+        }
+        ShowChar(x, y, *p, size, color);
+        x += size / 2;
+        p++;
+    }  
+}
+
+void ShowString_RGB(int x, int y, int width, int height, u_int8_t size, char *p, char red, char green, char blue)
+{         
+	u_int8_t x0 = x;
+	width += x;
+	height += y;
+    while ((*p <= '~') && (*p >= ' '))//判断是不是非法字符!
+    {       
+        if (x>=width)
+        {
+            x = x0;
+            y += size;
+        }
+        if (y >= height)
+        {
+            break;//退出
+        }
+        ShowChar_RGB(x, y, *p, size, red, green, blue);
+        x += size / 2;
+        p++;
+    }  
 }

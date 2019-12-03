@@ -203,6 +203,8 @@ $ route add default gw 192.168.208.254
 1. Use `apt` to install `nfs-kernel-server`.
 2. Edit the file `/etc/exports` to configure the service.
 3. Use `systemctl` to start and enable the service.
+> You may use `exportfs -a` to refresh the NFS directories.  
+Be adviced that we found sometimes `systemctl` may fail to start NFS, try to use `service` then.
 
 ## Step 12: Mount the NFS on Beaglebone
 ```

@@ -11,6 +11,13 @@ int main(int argc, char* argv[])
     Clear(WHITE);
     DrawLine(300, 300, 600, 600, BLUE);
     DrawLine(0, 0, 200, 200, RED);
+    DrawRectangle(50, 50, 80, 80, BLUE);
+    DrawCircle(460, 460, 50, YELLOW);
+    ShowChar(160, 160, 'M', 32, RED);
+    ShowChar(180, 160, 'S', 32, RED);
+    ShowNum(320, 320, 4396, 4, 32, BLACK);
+    ShowFloat(450, 450, 2200.28, 3, 8, 32, BLACK);
+    ShowString(240, 240, 500, 50, 32, "Hello world!", RED);
     //DrawPoint(300, 200, BLUE);
 
     fb_close();
