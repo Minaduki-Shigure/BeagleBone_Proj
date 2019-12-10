@@ -1,0 +1,124 @@
+Description: Fix FTBFS in GNU/Hurd.
+ - PATH_MAX does not have to be defined and is not define in GNU/Hurd.
+ - O_NDELAY is deprecated and not defined in Hurd unless _BSD_SOURCE is defined.
+ .
+ Hardcoding PATH_MAX is ugly but if it's not defined then "anything" is a valid
+ limit as long as it does not break malloc. It would be better if it used
+ dynamically allocated memory instead of 4096 but someone can provide an
+ improved patch for that.
+Author: Miguel A. Colón Vélez <debian.micove@gmail.com>
+Forwarded: yes
+Last-Update: 2016-05-25
+
+--- a/gui/dialog/fileselect.c
++++ b/gui/dialog/fileselect.c
+@@ -52,6 +52,12 @@
+ char *get_current_dir_name(void);
+ #else
+ #include <limits.h>
++
++// FIXME: Some systems don't define PATH_MAX (Example: GNU/Hurd)
++#ifndef PATH_MAX
++# define PATH_MAX 4096
++#endif
++
+ #define get_current_dir_name() getcwd(NULL, PATH_MAX)
+ #endif
+ 
+--- a/libao2/ao_esd.c
++++ b/libao2/ao_esd.c
+@@ -32,6 +32,10 @@
+  *   most likely a linux sound card driver problem)
+  */
+ 
++#ifdef __GNU__
++# define _BSD_SOURCE
++#endif
++
+ #include <sys/types.h>
+ #include <sys/time.h>
+ #include <sys/socket.h>
+--- a/libmenu/menu_filesel.c
++++ b/libmenu/menu_filesel.c
+@@ -51,6 +51,11 @@
+ 
+ #define MENU_KEEP_PATH "/tmp/mp_current_path"
+ 
++// FIXME: Some systems don't define PATH_MAX (Example: GNU/Hurd)
++#ifndef PATH_MAX
++# define PATH_MAX 4096
++#endif
++
+ int menu_keepdir = 0;
+ char *menu_chroot = NULL;
+ 
+--- a/libmpcodecs/vf_screenshot.c
++++ b/libmpcodecs/vf_screenshot.c
+@@ -38,6 +38,11 @@
+ #include "libswscale/swscale.h"
+ #include "libavcodec/avcodec.h"
+ 
++// FIXME: Some systems don't define PATH_MAX (Example: GNU/Hurd)
++#ifndef PATH_MAX
++# define PATH_MAX 4096
++#endif
++
+ struct vf_priv_s {
+     int frameno;
+     char fname[PATH_MAX];
+--- a/libmpdemux/mf.c
++++ b/libmpdemux/mf.c
+@@ -40,6 +40,11 @@
+ 
+ #include "mf.h"
+ 
++// FIXME: Some systems don't define PATH_MAX (Example: GNU/Hurd)
++#ifndef PATH_MAX
++# define PATH_MAX 4096
++#endif
++
+ int    mf_w = 0; //352; // let codecs to detect it
+ int    mf_h = 0; //288;
+ double mf_fps = 25.0;
+--- a/mplayer.c
++++ b/mplayer.c
+@@ -335,6 +335,11 @@
+ /* This header requires all the global variable declarations. */
+ #include "cfg-mplayer.h"
+ 
++// FIXME: Some systems don't define PATH_MAX (Example: GNU/Hurd)
++#ifndef PATH_MAX
++# define PATH_MAX 4096
++#endif
++
+ const void *mpctx_get_video_out(MPContext *mpctx)
+ {
+     return mpctx->video_out;
+--- a/osdep/osdep.h
++++ b/osdep/osdep.h
+@@ -34,6 +34,11 @@
+ #include <limits.h>     /* PATH_MAX  */
+ #include <errno.h>      /* errno     */
+ 
++// FIXME: Some systems don't define PATH_MAX (Example: GNU/Hurd)
++#ifndef PATH_MAX
++# define PATH_MAX 4096
++#endif
++
+ #define fopen(n, m) \
+     (strlen(n) >= PATH_MAX ? (errno = ENAMETOOLONG, NULL) : (fopen)(n, m))
+ 
+--- a/stream/stream_bd.c
++++ b/stream/stream_bd.c
+@@ -36,6 +36,11 @@
+ #include "stream.h"
+ #include "stream_bd.h"
+ 
++// FIXME: Some systems don't define PATH_MAX (Example: GNU/Hurd)
++#ifndef PATH_MAX
++# define PATH_MAX 4096
++#endif
++
+ static const int   BD_UNIT_SIZE = 6144;
+ static const char BD_UKF_PATH[]  = "%s/AACS/Unit_Key_RO.inf";
+ static const char BD_M2TS_PATH[] = "%s/BDMV/STREAM/%05d.m2ts";

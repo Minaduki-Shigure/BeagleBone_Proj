@@ -1,0 +1,14 @@
+Description: Fix lintian warning about spelling error in binary
+Author: Mateusz Łukasik <mati75@linuxmint.pl>
+
+--- a/stream/dvb_tune.c
++++ b/stream/dvb_tune.c
+@@ -386,7 +386,7 @@
+       mp_msg(MSGT_DEMUX, MSGL_V, "tuning DVB-S to Freq: %u, Pol: %c Srate: %d, 22kHz: %s, LNB:  %d\n",freq,pol,srate,hi_lo ? "on" : "off", diseqc);
+ 
+       if(do_diseqc(dfd, diseqc, (pol == 'V' ? 1 : 0), hi_lo) == 0)
+-          mp_msg(MSGT_DEMUX, MSGL_V, "DISEQC SETTING SUCCEDED\n");
++          mp_msg(MSGT_DEMUX, MSGL_V, "DISEQC SETTING SUCCEEDED\n");
+       else
+       {
+           mp_msg(MSGT_DEMUX, MSGL_ERR, "DISEQC SETTING FAILED\n");

@@ -1,0 +1,128 @@
+#!/usr/bin/make -f
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+# do not run the actual rules of this makefile in parallel. sub-makes
+# can go in parallel
+.NOTPARALLEL:
+
+DEB_HOST_ARCH       ?= $(shell dpkg-architecture -qDEB_HOST_ARCH)
+DEB_HOST_ARCH_OS    ?= $(shell dpkg-architecture -qDEB_HOST_ARCH_OS)
+
+CFLAGS +=$(CPPFLAGS)
+LDFLAGS += -Wl,--as-needed
+
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+
+CONFIGURE_FLAGS = \
+	--prefix=/usr \
+	--confdir=/etc/mplayer \
+	--enable-debug \
+	--enable-xvmc \
+	--enable-menu \
+	--disable-arts \
+	--language=all \
+	--disable-libmpeg2-internal \
+	--disable-ffmpeg_a \
+	--disable-esd \
+	--extra-cflags="${CFLAGS}" \
+	--extra-ldflags="${LDFLAGS}" \
+	$(archconf)
+
+CONFIGURE_DOC_FLAGS = \
+	--disable-ffmpeg_a \
+	--disable-mencoder \
+	--disable-mplayer \
+	--yasm='' \
+	--language=all
+
+# Runtime detections is available for i386, amd64 and ppc.
+ifneq (,$(filter $(DEB_HOST_ARCH),i386 hurd-i386 kfreebsd-i386 amd64 kfreebsd-amd64 powerpc))
+  CONFIGURE_FLAGS += --enable-runtime-cpudetection
+endif
+
+ifeq ($(DEB_HOST_ARCH),i386)
+#configure optimizes for the cpu detected at ./configure time
+#in order to build a generic binary, avoid non-standard opcodes through gcc
+  archconf += --target=i586-linux
+endif
+
+# when run on a sparc64 kernel, configure will normally select v9 asm.
+# this is hidden when running on buildds with 32bit kernel personality.
+# because of #644856, this will currently lead to a FTBFS
+# therefore, we force a 'generic' target.
+ifeq ($(DEB_HOST_ARCH),sparc)
+  archconf += --target=generic
+endif
+
+ifeq ($(DEB_HOST_ARCH),alpha)
+#Avoid high optimization through gcc.
+# see http://permalink.gmane.org/gmane.linux.debian.ports.alpha/7295
+  archconf += --target=alpha_ev5-linux
+endif
+
+ifeq ($(DEB_HOST_ARCH_OS),linux)
+    CONFIGURE_FLAGS += --enable-joystick --enable-radio --enable-radio-capture
+    sound_backend := alsa
+else
+    sound_backend := oss
+endif
+
+# It seems x32 has some alsa issues. Add oss as fallback.
+# see http://lists.alioth.debian.org/pipermail/pkg-multimedia-maintainers/2015-July/046049.html
+# The default for all could be "ao=pulse,alsa,oss,sdl:aalib" to avoid this.
+ifeq ($(DEB_HOST_ARCH),x32)
+    sound_backend := alsa,oss
+endif
+
+%:
+	dh $@
+
+override_dh_auto_build-arch:
+	dh_auto_build -- mplayer
+	mv mplayer gmplayer
+	$(MAKE) distclean
+	./configure $(CONFIGURE_FLAGS) --disable-gui
+	dh_auto_build -- mplayer mencoder
+
+override_dh_auto_build-indep:
+	[ -f DOCS/HTML/en/index.html ] || dh_auto_build -- html-chunked
+
+override_dh_auto_clean:
+	[ -f config.mak ] && $(MAKE) distclean || true
+
+override_dh_auto_configure-arch:
+	./configure $(CONFIGURE_FLAGS) --enable-gui
+
+override_dh_auto_configure-indep:
+	[ -f config.mak ] || ./configure $(CONFIGURE_DOC_FLAGS)
+
+override_dh_auto_install-arch:
+	$(MAKE) install-mplayer DESTDIR=$(CURDIR)/debian/mplayer
+	$(MAKE) install-mencoder DESTDIR=$(CURDIR)/debian/mencoder
+	$(MAKE) install-mplayer-man DESTDIR=$(CURDIR)/debian/mplayer
+	$(MAKE) install-mencoder-man DESTDIR=$(CURDIR)/debian/mencoder
+	$(MAKE) install-gui-man DESTDIR=$(CURDIR)/debian/mplayer-gui
+	$(MAKE) install-gui-icons DESTDIR=$(CURDIR)/debian/mplayer-gui
+	find debian/mencoder -type d -empty -delete
+	find debian/mplayer -type d -empty -delete
+	find debian/mplayer-gui -type d -empty -delete
+
+override_dh_auto_install-indep:
+override_dh_auto_test-indep:
+
+override_dh_compress-arch:
+	dh_compress
+	find debian/mencoder/usr/share/man/ -type f -name mplayer.1.gz -delete
+	find debian/mplayer-gui/usr/share/man/ -type f -name mplayer.1.gz -delete
+
+override_dh_install-arch:
+	dh_install
+	sed -e "s/@SOUND_BACKEND@/$(sound_backend)/" -i \
+	                  $(CURDIR)/debian/mplayer/etc/mplayer/mplayer.conf
+
+get-orig-source:
+	sh debian/get-svn-source.sh
+
+.PHONY: get-orig-source

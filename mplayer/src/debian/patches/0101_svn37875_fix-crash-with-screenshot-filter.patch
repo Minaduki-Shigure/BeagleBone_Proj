@@ -1,0 +1,22 @@
+Description: Fix crash with screenshot filter.
+ avcodec_open2() now requires timebase to be always set, even for png images.
+ The patch sets it to 1/1, since pictures do not have a framerate.
+Author: Thomas Kirsten <Tho_Ki@gmx.de>
+Origin:
+ http://lists.mplayerhq.hu/pipermail/mplayer-dev-eng/2016-June/073497.html
+Bug-Debian: https://bugs.debian.org/834135
+Applied-Upstream: commit:37875
+---
+This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
+
+--- a/libmpcodecs/vf_screenshot.c
++++ b/libmpcodecs/vf_screenshot.c
+@@ -81,6 +81,8 @@ static int config(struct vf_instance *vf
+         vf->priv->avctx->pix_fmt = AV_PIX_FMT_RGB24;
+         vf->priv->avctx->width = d_width;
+         vf->priv->avctx->height = d_height;
++        vf->priv->avctx->time_base.num = 1;
++        vf->priv->avctx->time_base.den = 1;
+         vf->priv->avctx->compression_level = 0;
+         if (avcodec_open2(vf->priv->avctx, avcodec_find_encoder(AV_CODEC_ID_PNG), NULL)) {
+             mp_msg(MSGT_VFILTER, MSGL_FATAL, "Could not open libavcodec PNG encoder\n");

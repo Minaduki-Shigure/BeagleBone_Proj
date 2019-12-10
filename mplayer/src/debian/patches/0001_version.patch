@@ -1,0 +1,14 @@
+Description: Modify the VERSION file.
+ Follow DOCS/tech/binary-packaging.txt instructions and adjust the version
+ since we modify the source.
+ .
+ Official releases always have a VERSION file and get-orig-source generates
+ one too.
+Author: Miguel A. Colón Vélez <debian.micove@gmail.com>
+Forwarded: not-needed
+
+--- a/VERSION
++++ b/VERSION
+@@ -1 +1 @@
+-1.3.0
++1.3.0 (Debian), built with gcc

@@ -1,0 +1,23 @@
+--------------------------------------
+Source package information for MPlayer
+--------------------------------------
+
+ * To download a revision from subversion:
+   - Make sure the latest changelog entry points to a valid official version
+     and adds the desired subversion revision.
+     Example:
+      mplayer (2:1.1.1+svn99999-1) UNRELEASED; urgency=medium
+     This will download subversion revision 99999 from trunk and says that the
+     latest official release is 1.1.1.
+   - Run
+     debian/rules get-orig-source
+
+ * Upstream provides DOCS/tech/release.sh which they use to generate their
+   official releases. This file downloads a MPlayer revision from svn, creates
+   a VERSION file (if needed), generates the HTML docs, downloads the complete
+   source of FFmpeg and makes a tarball of these. The get-orig-source routine
+   downloads the MPlayer revision, generates a VERSION file (if needed) and only
+   downloads libavutil/x86/asm.h from FFmpeg. The complete source of FFmpeg is
+   not needed and the HTML documentation gets generated during compilation.
+
+ -- Miguel A. Colón Vélez <debian.micove@gmail.com>  Sun, 12 Jul 2015 08:17:07 -0400

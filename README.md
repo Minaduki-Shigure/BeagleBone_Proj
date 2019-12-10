@@ -283,3 +283,15 @@ $ cat /dev/fb0 > demo.raw
 ```
 $ ffmpeg -vcodec rawvideo -f rawvideo -pix_fmt rgb565 -s 1280X1024 -i demo.raw -f image2 -vcodec png out-%d.png
 ```
+
+## Step 16: Migrate Mplayer
+1. Use `apt-src` to get mplayer and libmad.
+2. Deploy libmad:
+```
+$ ./configure --enable-fpm=arm --host=arm-linux-gnueabihf --disable-shared --enable-speed --prefix=/home/minaduki/Desktop/Beaglebone_Proj/mplayer/libmad CC=arm-linux-gnueabihf-gcc
+```
+The gcc for arm-linux do not accept the option '-fforce-mem', edit the Makefile generated, delete `-fforce-mem` from CFLAGS.
+```
+$ make
+$ make install
+```
