@@ -3,9 +3,19 @@
 
 int main(int argc, char* argv[])
 {
-    if (EXIT_SUCCESS != fb_open())
+    if (argc > 1)
     {
-        return EXIT_FAILURE;
+        if (EXIT_SUCCESS != fb_open(1, atoi(argv[1]), atoi(argv[2])))
+        {
+            return EXIT_FAILURE;
+        }
+    }
+    else
+    {
+        if (EXIT_SUCCESS != fb_open(0, 0, 0))
+        {
+            return EXIT_FAILURE;
+        }
     }
 
     Clear(WHITE);
@@ -20,7 +30,7 @@ int main(int argc, char* argv[])
     ShowString(240, 240, 500, 50, 32, "Hello world!", RED);
     DrawCircle(600, 600, 80, RED);
     ShowString(480, 360, 500, 50, 32, "By Minaduki Shigure.", BLUE);
-    //DrawPoint(300, 200, BLUE);
+    DrawLine(0, 0, 1023, 577, BLUE);
 
     fb_close();
 

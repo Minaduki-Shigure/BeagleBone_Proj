@@ -16,7 +16,7 @@
 #define VINFO_READ_FAILED -11
 #define MMAP_FAILED -12
 
-int fb_open(void);
+int fb_open(int costumize, int xres, int yres);
 int fb_close(void);
 void printInfo(void);
 int fb_draw_back_888(int x, int y, char Red, char Green, char Blue);

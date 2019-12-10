@@ -5,7 +5,7 @@ struct fb_var_screeninfo vinfo;
 static char* fbp;
 unsigned long screen_size;
 
-int fb_open(void)
+int fb_open(int costumize, int xres, int yres)
 {
 
     fd = open("/dev/fb0", O_RDWR);
@@ -23,10 +23,17 @@ int fb_open(void)
         return VINFO_READ_FAILED;
     }
 
-    //vinfo.xres = 1920;
-    //vinfo.yres = 1080;
-    //vinfo.xres_virtual = 960;
-    //vinfo.yres_virtual = 540;
+    if (costumize)
+    {
+        vinfo.xres = xres;
+        vinfo.yres = yres;
+
+        vinfo.xres_virtual = xres;
+        vinfo.yres_virtual = yres;
+
+        ioctl(fd, FBIOPUT_VSCREENINFO, &vinfo);
+        ioctl(fd, FBIOGET_VSCREENINFO, &vinfo);
+    }
     
 	//printf("xres=%d\nyres=%d\nbit=%d\n", vinfo.xres, vinfo.yres, vinfo.bits_per_pixel);
     printInfo();
