@@ -273,3 +273,13 @@ mount -t sysfs sys /sys
 # cd /sys/class/graphics/fb0
 # echo "Whatever you like" > blank
 ```
+
+> How to capture the screen:  
+Use the following commands to capture your screen:
+```
+$ cat /dev/fb0 > demo.raw
+```
+> And you may convert it via `ffmpeg`:
+```
+$ ffmpeg -vcodec rawvideo -f rawvideo -pix_fmt rgb565 -s 1280X1024 -i demo.raw -f image2 -vcodec png out-%d.png
+```
