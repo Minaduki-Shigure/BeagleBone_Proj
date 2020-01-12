@@ -20,6 +20,7 @@
 
 #define led_on(index) (*(gpio->pDataOut) |= (1 << (21 + index)))
 #define led_off(index) (*(gpio->pDataOut) &= ~(1 << (21 + index)))
+#define led_remove_off(index) (*(gpio.pDataOut) &= ~(1 << (21 + index)))
 
 int led_open(struct inode* inode, struct file* filp);
 int led_release(struct inode* inode, struct file* filp);

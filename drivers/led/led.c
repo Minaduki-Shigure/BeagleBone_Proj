@@ -17,6 +17,19 @@ int led_init(void)
 
 void cleanup_module(void)
 {
+    gpio_t gpio;
+
+    gpio.pConf = ioremap(GPIO_OE, 4); /* 映 射 方 向 寄 存 器 */
+    gpio.pDataIn = ioremap(GPIO_IN, 4); /* 映 射 输 入 寄 存 器 */
+    gpio.pDataOut = ioremap(GPIO_OUT, 4); /* 映 射 输 出 寄 存 器 */
+
+    led_remove_off(1);
+    led_remove_off(2);
+    led_remove_off(3);
+    iounmap(gpio.pConf);
+	iounmap(gpio.pDataOut);
+    iounmap(gpio.pDataIn);
+
 	unregister_chrdev(major, "LED");
 	printk("LED module removed.\n");
 }
@@ -40,9 +53,9 @@ int led_release(struct inode* inode, struct file* filp)
 {
 	gpio_t* gpio = (gpio_t*)(filp->private_data);
     printk("Releasing\n");
-    led_off(1);
-    led_off(2);
-    led_off(3);
+    //led_off(1);
+    //led_off(2);
+    //led_off(3);
     iounmap(gpio->pConf);
 	iounmap(gpio->pDataOut);
     iounmap(gpio->pDataIn);

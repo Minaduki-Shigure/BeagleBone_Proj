@@ -12,6 +12,9 @@ default: $(APP)
 $(APP): $(APP_SRC)
 	$(PREFIX)gcc -o $@ $^
 
+copy: $(APP) led.ko
+	cp $^ /home/minaduki/Desktop/nfsroot/nfs4/
+
 clean:
 	$(MAKE) CROSS_COMPILE=$(PREFIX) ARCH=$(ARCH_TYPE) -C $(KERNELDIR) SUBDIRS=$(PWD) clean
 	rm $(APP)
