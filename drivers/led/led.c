@@ -31,7 +31,7 @@ void cleanup_module(void)
     iounmap(gpio.pDataIn);
 
 	unregister_chrdev(major, "LED");
-	printk("LED module removed.\n");
+	printk("LED module reset and removed.\n");
 }
 
 int led_open(struct inode* inode, struct file* filp)

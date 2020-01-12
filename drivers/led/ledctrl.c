@@ -6,24 +6,40 @@
 
 int main(int argc, char* argv[])
 {
-  int fd = open("/dev/led",O_RDWR);
-  int sign=0;
-  char buff;
-while(sign!=8)
-{
-  printf("use 0 till 7 to indicate different status of 3 leds, and input 8 to quit\n");
-
-  if(sign ==8)
-	break;
-  printf("please input sign: ");
-  scanf("%d",&sign);
-
-  buff=sign;//二进制在那，根据读的方式不同显示不同的数据
-  sleep(1);
-  write(fd,&buff,1);
-sleep(1);
+	if (argc > 2)
+	{
+		if (argc != 4)
+		{
+			printf("Usage: %s <LED0> <LED1> <LED2>\n", argv[0]);
+			return -1;
+		}
+		int fd = open("/dev/led", O_RDWR);
+		char buf = 0;
+		for (int i = 0; i < 3; ++i)
+		{
+			buf |= (argv[i + 1][0] - 0x30) << i;
+		}
+		printf("Writing %d to device\n", (int)buf);
+		write(fd, &buf, 1);
+		close(fd);
+		return 0;
+	}
+	int fd = open("/dev/led", O_RDWR);
+	int input = 0;
+	char buf;
+	while (input != 8)
+	{
+		printf("Please input 0 to 7 to change status of 3 leds, an input of 8 or larger will be considered as exiting\n");
+		printf("Please input:");
+		scanf("%d", &input);
+		if (input > 7)
+		{
+			close(fd);
+			return 0;
+		}
+		buf = input;
+		write(fd, &buf, 1);
+	}
+	close(fd);
+	return 0;
 }
-  close(fd);
-  return 0;
-}
-
