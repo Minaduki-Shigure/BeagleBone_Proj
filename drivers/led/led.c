@@ -55,14 +55,17 @@ ssize_t led_write(struct file* filp, const char* buff, size_t count, loff_t* led
     char c;
     gpio_t* gpio = (gpio_t*)(filp->private_data);
 
-	int copied = copy_from_user(&c, buff, sizeof(buff));
+	int uncopied = copy_from_user(&c, buff, sizeof(buff));
 	
     int temp[3];
     int i = 0;
+
+    temp[0] = ((unsigned int)(c - 0x30)) & (1 << 0);
+    temp[1] = ((unsigned int)(c - 0x30)) & (1 << 1);
+    temp[2] = ((unsigned int)(c - 0x30)) & (1 << 2);
     
     for (i = 0; i < 3; ++i)
     {
-        temp[i] = ((unsigned int)(c - 0x30)) & (1 << i);
         if (temp[i])
         {
             printk("Turning LED %d on\n", i);
@@ -75,7 +78,8 @@ ssize_t led_write(struct file* filp, const char* buff, size_t count, loff_t* led
         } 
     }
 
-    return copied;
+    printk("Write finished\n");
+    return sizeof(char) - uncopied;
 }
 
 ssize_t led_read(struct file* filp, char* buff, size_t count, loff_t* f_pos)

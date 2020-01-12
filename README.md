@@ -251,6 +251,9 @@ The kernel I use (and provide) will use NFSv2 as default, if you are using later
 
 > If failed when trying to mount the NFS, you may add `nfsrootdebug` when setting bootargs, it will let the kernel print the DEBUG log and you may be able to analyze it to find your mistakes.
 
+## Step 14: IO drivers
+> Be careful! The command `echo` writes **2 bytes** but our driver is only expecting 1.
+
 ## (Unfinished)Step 14: Setup GDBserver on the BeagleBone
 1. Download gdb from the Internet, move in to dir `gdbserver` and run configure:
 ```
