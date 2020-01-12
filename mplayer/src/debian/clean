@@ -1,8 +1,0 @@
-config.h
-config.log
-ffmpeg/.config
-ffmpeg/config.asm
-ffmpeg/config.h
-ffmpeg/config.mak
-ffmpeg/libavutil/avconfig.h
-gmplayer

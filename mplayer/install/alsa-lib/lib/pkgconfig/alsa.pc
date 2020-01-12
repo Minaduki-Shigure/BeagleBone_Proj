@@ -1,0 +1,12 @@
+prefix=/home/minaduki/Desktop/Beaglebone_Proj/mplayer/install/alsa-lib
+exec_prefix=/home/minaduki/Desktop/Beaglebone_Proj/mplayer/install/alsa-lib
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: alsa
+Description: Advanced Linux Sound Architecture (ALSA) - Library
+Version: 1.1.9
+Requires: 
+Libs: -L${libdir} -lasound
+Libs.private: -lm -ldl -lpthread -lrt
+Cflags: -I${includedir}

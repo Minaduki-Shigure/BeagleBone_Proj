@@ -1,0 +1,32 @@
+font_8x8.o: font_8x8.c /usr/arm-linux-gnueabihf/include/stdc-predef.h \
+ font.h /usr/arm-linux-gnueabihf/include/linux/types.h \
+ /usr/arm-linux-gnueabihf/include/asm/types.h \
+ /usr/arm-linux-gnueabihf/include/asm-generic/int-ll64.h \
+ /usr/arm-linux-gnueabihf/include/asm/bitsperlong.h \
+ /usr/arm-linux-gnueabihf/include/asm-generic/bitsperlong.h \
+ /usr/arm-linux-gnueabihf/include/linux/posix_types.h \
+ /usr/arm-linux-gnueabihf/include/linux/stddef.h \
+ /usr/arm-linux-gnueabihf/include/asm/posix_types.h \
+ /usr/arm-linux-gnueabihf/include/asm-generic/posix_types.h
+
+/usr/arm-linux-gnueabihf/include/stdc-predef.h:
+
+font.h:
+
+/usr/arm-linux-gnueabihf/include/linux/types.h:
+
+/usr/arm-linux-gnueabihf/include/asm/types.h:
+
+/usr/arm-linux-gnueabihf/include/asm-generic/int-ll64.h:
+
+/usr/arm-linux-gnueabihf/include/asm/bitsperlong.h:
+
+/usr/arm-linux-gnueabihf/include/asm-generic/bitsperlong.h:
+
+/usr/arm-linux-gnueabihf/include/linux/posix_types.h:
+
+/usr/arm-linux-gnueabihf/include/linux/stddef.h:
+
+/usr/arm-linux-gnueabihf/include/asm/posix_types.h:
+
+/usr/arm-linux-gnueabihf/include/asm-generic/posix_types.h:

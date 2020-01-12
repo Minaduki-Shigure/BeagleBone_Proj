@@ -1,0 +1,254 @@
+#include <linux/module.h>
+#include <linux/device.h>
+#include <linux/types.h>
+#include <linux/kernel.h>
+#include <linux/printk.h>
+#include <linux/fs.h>
+#include <linux/cdev.h>
+#include <linux/init.h>
+#include <linux/gpio.h>
+#include <linux/slab.h>
+#include <asm/uaccess.h>
+#include "led.h"
+
+static int __init led_module_init(void);
+static int __exit led_module_exit(void);
+static int led_module_open (struct inode *, struct file *);
+static int led_module_release (struct inode *, struct file *);
+static ssize_t led_module_read (struct file *, char __user *, size_t, loff_t *);
+static ssize_t led_module_write (struct file *, const char __user *, size_t, loff_t *);
+static long led_module_ioctl (struct file *, unsigned int, unsigned long);
+
+struct led_io_resource_t{
+    char name[16]; //端口名称
+    uint8_t  state; //记录端口状态信息，已经注册/已释放
+    uint32_t io_num; //端口号
+    uint8_t   io_dir; //方向0输出1输入
+    struct led_io_resource_t *next; //下一个申请的IO资源
+};
+struct led_module_t{
+    const char name[16];    //注册使用的名称
+
+    dev_t devt; //设备号
+    struct class *dev_class; //设备类
+    struct device *device;  //设备节点
+    struct cdev dev;    
+
+    struct file_operations fop; 
+
+    struct led_io_resource_t led_io;
+};
+
+static struct led_module_t led_module = {
+    .name = "led_dev",
+
+    .devt = MKDEV(LED_DEV_MAJOR, LED_DEV_MINOR),
+
+    .fop = {
+        .owner = THIS_MODULE,
+        .open  =  led_module_open,
+        .release = led_module_release,
+        .read     = led_module_read,
+        .write    = led_module_write,   
+        .unlocked_ioctl = led_module_ioctl,
+    },
+    .led_io = {
+        .name = "",
+        .state = GPIO_RELEASE,
+        .io_num = LED_GPIO_NUM,
+        .io_dir   = OUT_PUT,
+        .next     = NULL,
+    },
+
+};
+
+
+static int __init led_module_init(void)
+{
+    int ok;
+    struct led_module_t *dev = &led_module;
+
+    if(MAJOR(dev->devt)){
+        //注册手动分配的设备号
+        ok = register_chrdev_region(dev->devt, 1, dev->name);
+    } else {
+        //申请设备号
+        ok = alloc_chrdev_region(&dev->devt, MINOR(dev->devt), 1, dev->name);
+    }
+
+    if(ok != 0){
+        printk(KERN_ERR "CUSE: failed to register chrdev region\n");
+        goto register_region_error;
+    }
+
+    //创建设备类
+    dev->dev_class = class_create(THIS_MODULE, dev->name);
+    if(IS_ERR(dev->dev_class)){
+        printk(KERN_ERR "CUSE: failed to create chrdev class\n");
+        goto class_create_error;
+    }
+    //创建设备节点
+    dev->device = device_create(dev->dev_class, NULL, dev->devt, dev, dev->name);
+    if(IS_ERR(dev->device)){
+        printk(KERN_ERR "CUSE: failed to create device\n");
+        goto device_create_error;
+    }
+
+    cdev_init(&dev->dev, &dev->fop);
+    //加入散列表中，提供调用管理
+    ok = cdev_add(&dev->dev, dev->devt, 1);
+    if(ok != 0){
+        printk(KERN_ERR "CUSE: failed to add cdev\n");
+        goto cdev_add_error;
+    }
+    return 0;
+cdev_add_error:
+    device_destroy(dev->dev_class, dev->devt);
+device_create_error:
+    class_destroy(dev->dev_class);
+class_create_error:
+    unregister_chrdev_region(dev->devt, 1);
+register_region_error:
+    return -1;
+}
+static int __exit led_module_exit(void)
+{
+    struct led_module_t *dev = &led_module;
+
+    cdev_del(&dev->dev);
+    device_destroy(dev->dev_class, dev->devt);
+    class_destroy(dev->dev_class);
+    unregister_chrdev_region(dev->devt, 1);
+
+    gpio_free(dev->led_io.io_num);
+    dev->led_io.state = GPIO_RELEASE;
+
+    return 0;
+}
+static int led_module_open (struct inode *fi, struct file *fp)
+{
+    int ret;
+    struct led_module_t *dev;
+
+    //fi->i_cdev在cdev_add时传入
+    dev = container_of(fi->i_cdev, struct led_module_t, dev);
+
+    //已经打开，直接返回成功
+    if(dev->led_io.state == GPIO_REGISTER){
+        return 0;
+    }
+
+    sprintf(dev->led_io.name, "gpio-%d", dev->led_io.io_num);
+    //申请GPIO
+    ret = gpio_request(dev->led_io.io_num, dev->led_io.name);
+    if(ret < 0){
+        printk(KERN_ERR "CUSE: failed to request gpio %d\n", dev->led_io.io_num);
+        goto gpio_request_error;
+    }
+
+    //设定管脚方向
+    ret = gpio_direction_output(dev->led_io.io_num, 0); //0为初始输出值
+    if(ret < 0){
+        goto set_gpio_direction_failed;
+    }
+
+    dev->led_io.state = GPIO_REGISTER;
+    return 0;
+set_gpio_direction_failed:
+    gpio_free(dev->led_io.io_num);
+gpio_request_error: 
+    return ret;
+}
+static int led_module_release (struct inode *fi, struct file *fp)
+{
+    struct led_module_t *dev;
+
+    dev = container_of(fi->i_cdev, struct led_module_t, dev);
+    //释放管脚占用
+    gpio_free(dev->led_io.io_num);
+    dev->led_io.state = GPIO_RELEASE;
+
+    return 0;
+}
+static ssize_t led_module_read (struct file *fp, char __user *buff, size_t size, loff_t *foff)
+{
+    uint8_t ret = 0;
+    struct led_module_t *dev = &led_module;;
+
+
+    ret = gpio_get_value(dev->led_io.io_num);
+
+    return copy_to_user(buff, &ret, sizeof(uint8_t));
+}
+static ssize_t led_module_write (struct file *fp, const char __user *buff, size_t size, loff_t *foff)
+{
+    uint32_t value = 0;
+    struct led_module_t *dev = &led_module;
+
+
+    copy_from_user(&value, buff, 1);
+
+    gpio_set_value(dev->led_io.io_num, value?1:0);
+    printk(KERN_ALERT "%s: write data %d\n", dev->name, value);
+
+    return 0;
+}
+static long led_module_ioctl (struct file *fp, unsigned int cmd, unsigned long arg)
+{
+    int ret = 0;
+    unsigned int data;
+    struct led_module_t *dev = &led_module;
+
+    if(_IOC_TYPE(cmd) != LED_IOCTL_MAGIC){
+        printk(KERN_ALERT "%s:  cmd error\n", dev->name);
+        return -ENOTTY;
+    }
+
+    if(_IOC_NR(cmd) > LED_IOC_MAXNR){
+        printk(KERN_ALERT "%s:  cmd error\n", dev->name);
+        return -ENOTTY;
+    }
+
+    if(_IOC_DIR(cmd) & _IOC_READ){
+        switch(cmd){
+            case LED_IOCREAD:
+                data = gpio_get_value(dev->led_io.io_num);
+                if(put_user(data, (unsigned int __user*)arg)){
+                    ret = -EFAULT;
+                    goto cap_err;
+                }
+                break;
+            default:
+                ret = -EINVAL;
+        }
+    } else if(_IOC_DIR(cmd) & _IOC_WRITE){
+        switch(cmd){
+            case LED_IOCWRITE:
+                if(get_user(data, (unsigned int __user *)arg)){
+                    printk(KERN_ALERT "%s:  bad address\n", dev->name);
+                    ret = -EFAULT;
+                    goto cap_err;
+                }
+
+                gpio_set_value(dev->led_io.io_num, data?1:0);
+                break;
+            default:
+                ret = -EINVAL;
+        }       
+    }else{
+        switch(cmd){
+            case LED_IOCRESET:
+                //nothing to do
+                break;
+            default:
+                ret = -EINVAL;
+        }
+    }
+
+cap_err:
+    return ret;
+}
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("kwanson");
+module_init(led_module_init);
+module_exit(led_module_exit);

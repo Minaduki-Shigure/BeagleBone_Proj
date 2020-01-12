@@ -285,13 +285,66 @@ $ ffmpeg -vcodec rawvideo -f rawvideo -pix_fmt rgb565 -s 1280X1024 -i demo.raw -
 ```
 
 ## Step 16: Migrate Mplayer
-1. Use `apt-src` to get mplayer and libmad.
+1. Use `apt-src` or `wget` to get mplayer, zlib and libmad. Recompile the kernel and make sure the sound drivers are included.
 2. Deploy libmad:
 ```
-$ ./configure --enable-fpm=arm --host=arm-linux-gnueabihf --disable-shared --enable-speed --prefix=/home/minaduki/Desktop/Beaglebone_Proj/mplayer/libmad CC=arm-linux-gnueabihf-gcc
+$ ./configure --enable-fpm=arm --host=arm-linux-gnueabihf --enable-speed --prefix=/home/minaduki/Desktop/Beaglebone_Proj/mplayer/install/libmad CC=arm-linux-gnueabihf-gcc
 ```
 The gcc for arm-linux do not accept the option '-fforce-mem', edit the Makefile generated, delete `-fforce-mem` from CFLAGS.
 ```
 $ make
 $ make install
 ```
+
+2. Deploy zlib:
+```
+$ CC=arm-linux-gnueabihf-gcc ./configure --prefix=/home/minaduki/Desktop/Beaglebone_Proj/mplayer/install/glib
+$ make
+$ make install
+```
+
+3. Deploy alsa-lib:
+```
+$ ./configure --host=arm-linux-gnueabihf --target=arm-linux --prefix=/home/minaduki/Desktop/Beaglebone_Proj/mplayer/install/alsa-lib --enable-shared --disable-python
+ 
+or?
+
+$ ./configure --host=arm-linux-gnueabihf --target=arm-linux --prefix=/home/minaduki/Desktop/Beaglebone_Proj/mplayer/install/alsa-lib --enable-static --disable-python --disable-shared
+
+./configure --host=arm-linux-gnueabihf --target=arm-linux --prefix=/home/minaduki/Desktop/Beaglebone_Proj/mplayer/install/alsa-lib --enable-static=yes --disable-python --enable-shared=no
+
+
+$ make
+$ make install
+```
+Then copy the libraries to the rootfs.
+
+4. Deploy MPlayer:
+MPlayer requires source of ffmpeg and will clone it from github.com, since the lightning-like speed, we may clone from gitee.com in advance.
+```
+$ git clone https://gitee.com/mirrors/ffmpeg.git
+```
+Configure & Make:
+```
+$ ./configure --cc=arm-linux-gnueabihf-gcc --target=arm-linux-gnueabihf --enable-static --prefix=/home/minaduki/Desktop/Beaglebone_Proj/mplayer/install/mplayer --disable-dvdread --enable-fbdev --disable-mencoder --disable-live --enable-mad --disable-armv5te --disable-armv6 --enable-cross-compile --extra-cflags="-I/home/minaduki/Desktop/Beaglebone_Proj/mplayer/install/libmad/include -I/home/minaduki/Desktop/Beaglebone_Proj/mplayer/install/glib/include" --extra-ldflags="-L/home/minaduki/Desktop/Beaglebone_Proj/mplayer/install/libmad/lib -L/home/minaduki/Desktop/Beaglebone_Proj/mplayer/install/glib/lib"
+```
+
+> Whatever library is missing, just copy that f**king library into the rootfs.
+
+
+CC=arm-linux-gnueabi-gcc ./configure --disable-fpm --host=arm-linux-gnueabi --enable-speed --prefix=/home/minaduki/Desktop/nfsroot/nfs4/pi0/mplayer/install/libmad
+
+CC=arm-linux-gnueabi-gcc ./configure --prefix=/home/minaduki/Desktop/nfsroot/nfs4/pi0/mplayer/install/glib
+
+./configure --prefix=/home/minaduki/Desktop/nfsroot/nfs4/pi0/mplayer/install/mplayer --cc=arm-linux-gnueabi-gcc --target=arm-linux-gnueabi --enable-fbdev --disable-mencoder --disable-live --enable-mad --enable-cross-compile --extra-cflags="-I/home/minaduki/Desktop/nfsroot/nfs4/pi0/mplayer/install/libmad/include -I/home/minaduki/Desktop/nfsroot/nfs4/pi0/mplayer/install/glib/include" --extra-ldflags="-L/home/minaduki/Desktop/nfsroot/nfs4/pi0/mplayer/install/libmad/lib -L/home/minaduki/Desktop/nfsroot/nfs4/pi0/mplayer/install/glib/lib"
+
+
+CC=arm-linux-gnueabihf-gcc ./configure --disable-fpm --host=arm-linux-gnueabihf --enable-speed --prefix=/home/minaduki/Desktop/nfsroot/nfs4/pi0/mplayer/install/libmad
+
+CC=arm-linux-gnueabihf-gcc ./configure --prefix=/home/minaduki/Desktop/nfsroot/nfs4/pi0/mplayer/install/glib
+
+./configure --prefix=/home/minaduki/Desktop/nfsroot/nfs4/pi0/mplayer/install/mplayer --cc=arm-linux-gnueabihf-gcc --target=arm-linux-gnueabihf --enable-fbdev --disable-mencoder --disable-live --enable-mad --enable-cross-compile --extra-cflags="-I/home/minaduki/Desktop/nfsroot/nfs4/pi0/mplayer/install/libmad/include -I/home/minaduki/Desktop/nfsroot/nfs4/pi0/mplayer/install/glib/include" --extra-ldflags="-L/home/minaduki/Desktop/nfsroot/nfs4/pi0/mplayer/install/libmad/lib -L/home/minaduki/Desktop/nfsroot/nfs4/pi0/mplayer/install/glib/lib"
+
+
+## Touch screen
+1. enable in kernel: `Device Drivers → Input device support → Touchscreens → USB Touchscreen Driver`

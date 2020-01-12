@@ -1,0 +1,4 @@
+seq_symbols.lo: seq_symbols.c \
+ /usr/arm-linux-gnueabihf/include/stdc-predef.h
+
+/usr/arm-linux-gnueabihf/include/stdc-predef.h:
