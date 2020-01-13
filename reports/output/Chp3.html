@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>数字系统II 实验 报告三</title>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.10.2/dist/katex.min.css" integrity="sha384-yFRtMMDnQtDRO8rLpMIKrtPCD5jdktao2TV19YiZYWMDkUR5GQZR/NOVTdquEx1j" crossorigin="anonymous">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/markdown.css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/highlight.css">
+        <link href="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.css" rel="stylesheet" type="text/css">
+        <style>
+.task-list-item { list-style-type: none; } .task-list-item-checkbox { margin-left: -20px; vertical-align: middle; }
+</style>
+        <style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', 'Ubuntu', 'Droid Sans', sans-serif;
+                font-size: 14px;
+                line-height: 1.6;
+            }
+        </style>
+        
+        <script src="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.js"></script>
+    </head>
+    <body class="vscode-light">
+        <h1 id="%e6%95%b0%e5%ad%97%e7%b3%bb%e7%bb%9fii-%e5%ae%9e%e9%aa%8c-%e6%8a%a5%e5%91%8a%e4%b8%89">数字系统II 实验 报告三</h1>
+<p>Copyright (c) 2019 Minaduki Shigure.<br>
+南京大学 电子科学与工程学院 吴康正 171180571<br>
+项目repo地址：<a href="https://git.nju.edu.cn/Minaduki/beaglebone_proj">https://git.nju.edu.cn/Minaduki/beaglebone_proj</a></p>
+<h2 id="%e5%ae%9e%e9%aa%8c%e7%9b%ae%e7%9a%84">实验目的</h2>
+<ol>
+<li>学习嵌入式Linux操作系统设备驱动的方法。</li>
+<li>编写一个I/O接口的驱动模块，并且安装到系统内核中，实现通过syscall访问设备。</li>
+<li>提供一个用户空间程序，包装对接口的访问。</li>
+</ol>
+<h2 id="%e5%ae%9e%e9%aa%8c%e7%8e%af%e5%a2%83">实验环境</h2>
+<h3 id="1-%e7%a1%ac%e4%bb%b6%e7%8e%af%e5%a2%83">1. 硬件环境</h3>
+<p>实验使用了TI的BeagleBone Black开发板作为实验环境，其参数如下：</p>
+<ul>
+<li>处理器：基于ARM Cortex-A8架构的TI AM3359 Sitara @ 1GHz</li>
+<li>内存：板载512MiB DDR3</li>
+<li>存储：板载4GiB 8-bit eMMC闪存</li>
+<li>拓展存储：支持micro SD存储卡</li>
+<li>网络界面：RJ-45接口百兆以太网</li>
+<li>数字多媒体输出：micro HDMI接口</li>
+<li>拓展接口：UART、GPIO、SPI、I2C等</li>
+</ul>
+<p>使用的显示器：</p>
+<ul>
+<li>分辨率：最大1920*1080</li>
+<li>色彩空间：RGB565</li>
+</ul>
+<h3 id="2-%e8%bd%af%e4%bb%b6%e7%8e%af%e5%a2%83">2. 软件环境</h3>
+<ul>
+<li>上位机：使用Ubuntu 19.10系统的x86 PC</li>
+<li>Linux源码：<a href="%22https://git.nju.edu.cn/Minaduki/linux%22">版本4.4.155</a></li>
+<li>Busybox源码：<a href="%22https://git.nju.edu.cn/Minaduki/beaglebone_proj/tree/master/busybox-1.30.1%22">版本1.30.1</a></li>
+<li>编译器：The GNU Compiler Collection 9.2.1</li>
+<li>bootloader：U-boot</li>
+</ul>
+<h3 id="3-%e7%bd%91%e7%bb%9c%e7%8e%af%e5%a2%83">3. 网络环境</h3>
+<ul>
+<li>网关：192.168.208.254</li>
+<li>上位机：192.168.208.35</li>
+<li>开发板：192.168.208.121</li>
+</ul>
+<h2 id="%e5%ae%9e%e9%aa%8c%e5%8e%9f%e7%90%86">实验原理</h2>
+<blockquote>
+<p>关于实验原理：<br>
+具体的实验原理中，实验指导书有所提及的在这里不再重复叙述。这里仅进行一些补充说明。</p>
+</blockquote>
+<h3 id="%e5%85%b3%e4%ba%8e%e5%86%85%e6%a0%b8%e6%a8%a1%e5%9d%97">关于内核模块</h3>
+<p>内核模块可以减小内核的体积，同时增强内核的拓展性。内核模块在加载时只会被链接到内核，因此不能使用标准glibc库的函数，应该使用内核提供的API，并在编译时提供内核源码。<br>
+内核模块可以用于实现设备驱动的功能。<br>
+内核模块驱动程序与守护进程的区别有以下几点：</p>
+<ol>
+<li>守护进程运行在用户空间，内核模块运行在内核空间。因此内核模块不能直接访问用户空间的指针。</li>
+<li>守护进程是后台进程，系统CPU会定期访问进程以检查是否有请求，而内核模块只能被动接受请求。</li>
+</ol>
+<h3 id="%e5%85%b3%e4%ba%8e%e8%ae%be%e5%a4%87%e6%96%87%e4%bb%b6">关于设备文件</h3>
+<p>设备文件使用<code>mknod</code>命令创建，通过设备号与内核设备驱动相对应，在对设备文件请求系统调用时，会根据设备文件的设备号去内核寻找注册了该设备号的模块，然后调用其注册的方法进行实际I/O操作。</p>
+<h3 id="%e5%85%b3%e4%ba%8eled%e4%b8%8egpio">关于LED与GPIO</h3>
+<p>BeagleBone Black开发板上总共有3个空闲可供使用的LED(还有一个被系统用作状态指示灯了，可以改变状态，但是会被系统状态覆盖)，这三个LED都位于GPIO1控制器上，分别对应GPIO1_24-GPIO1_22的引脚。<br>
+对于GPIO控制器，其拥有数个寄存器，其中与本次实验相关的寄存器为<code>GPIO_OE</code>与<code>GPIO_DATAOUT</code>，每个寄存器大小为4byte，对应每个GPIO控制器控制的32个引脚，其中<code>GPIO_OE</code>负责输出使能，0为输出，1为输入，而<code>GPIO_DATAOUT</code>对应每个引脚具体的输出状态。实际使用中，只需要将对应的寄存器地址使用<code>ioremap</code>映射到内存中，然后就可以进行存取。<br>
+对于GPIO1控制器，其基地址与各个寄存器的偏移地址如下：</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">寄存器</th>
+<th style="text-align:center">地址</th>
+<th style="text-align:right">备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">GPIO_BASE</td>
+<td style="text-align:center">0x4804C000</td>
+<td style="text-align:right">基地址，非寄存器</td>
+</tr>
+<tr>
+<td style="text-align:left">GPIO_OE</td>
+<td style="text-align:center">GPIO_BASE + 0x134</td>
+<td style="text-align:right">输出使能(0为输出，1为输入)</td>
+</tr>
+<tr>
+<td style="text-align:left">GPIO_DATAIN</td>
+<td style="text-align:center">GPIO_BASE + 0x138</td>
+<td style="text-align:right">输入值</td>
+</tr>
+<tr>
+<td style="text-align:left">GPIO_DATAOUT</td>
+<td style="text-align:center">GPIO_BASE + 0x13C</td>
+<td style="text-align:right">输出值</td>
+</tr>
+</tbody>
+</table>
+<h2 id="%e5%ae%9e%e9%aa%8c%e6%b5%81%e7%a8%8b">实验流程</h2>
+<h3 id="1-%e5%87%86%e5%a4%87%e5%b7%a5%e4%bd%9c">1. 准备工作</h3>
+<h4 id="11-%e9%87%8d%e6%96%b0%e9%85%8d%e7%bd%ae%e7%bc%96%e8%af%91%e5%86%85%e6%a0%b8">1.1 重新配置编译内核</h4>
+<p>使用<code>make menuconfig ARCH=arm</code>对内核进行自定义，需要保证如下条件满足：<br>
+<code>Enable loadable module support</code>处于启用状态，支持在系统运行时加载/卸载驱动模块。</p>
+<p>如有配置修改，配置完成后重新编译内核。</p>
+<p>至此，所有准备工作完成，使用内核和根文件系统启动。</p>
+<h3 id="2-%e7%a1%ae%e5%ae%9a%e9%a1%b9%e7%9b%ae%e7%bb%93%e6%9e%84">2. 确定项目结构</h3>
+<p>项目由三部分组成，分别为：</p>
+<ol>
+<li>内核模块文件<code>led.c</code>和<code>led.h</code>，编译后生成内核目标文件，提供syscall供用户程序调用。</li>
+<li>脚本文件<code>led.sh</code>，负责在开发板上安装内核模块，并且创建设备文件，如有必要，可以将此脚本放入初始化表或启动脚本中，实现开机自动安装模块。</li>
+<li>用户程序<code>ledctrl.c</code>，通过syscall调用内核模块驱动，提供直观的LED驱动控制。</li>
+</ol>
+<p>项目通过Makefile进行管理，调用内核Makefile将<code>led.c</code>和<code>led.h</code>编译为内核目标文件<code>led.o</code>，Makefile中的变量<code>obj-m = led.o</code>中的m代表编译为可卸载的模块而非整合进入内核。</p>
+<pre><code><code><div>PWD = $(shell pwd)
+KERNELDIR = /home/minaduki/Desktop/Beaglebone_Proj/src
+ARCH_TYPE = arm
+PREFIX = arm-linux-gnueabihf-
+obj-m = led.o
+APP = ledctrl
+APP_SRC = ledctrl.c
+
+default: $(APP)
+	$(MAKE) CROSS_COMPILE=$(PREFIX) ARCH=$(ARCH_TYPE) -C $(KERNELDIR) SUBDIRS=$(PWD) modules
+
+$(APP): $(APP_SRC)
+	$(PREFIX)gcc -o $@ $^
+
+copy: $(APP) led.ko
+	cp $^ /home/minaduki/Desktop/nfsroot/nfs4/
+
+clean:
+	$(MAKE) CROSS_COMPILE=$(PREFIX) ARCH=$(ARCH_TYPE) -C $(KERNELDIR) SUBDIRS=$(PWD) clean
+	rm $(APP)
+</div></code></code></pre>
+<p>其中，各个目标的作用如下：</p>
+<ul>
+<li>$(target): 用于生成全部程序，包含内核目标文件</li>
+<li>$(APP): 用于生成LED控制器的用户程序</li>
+<li>copy: 用于将生成的文件复制到NFS根目录，供开发板运行</li>
+<li>clean: 用于清理</li>
+</ul>
+<h3 id="3-%e7%bc%96%e5%86%99%e7%a8%8b%e5%ba%8f">3. 编写程序</h3>
+<blockquote>
+<p>仅包含部分关键代码，完整源码请<a href="https://git.nju.edu.cn/Minaduki/beaglebone_proj/tree/master/drivers/led" title="Powered by NJU Git">查看此处</a>。</p>
+</blockquote>
+<h4 id="31-%e5%86%85%e6%a0%b8%e6%a8%a1%e5%9d%97">3.1 内核模块</h4>
+<ol>
+<li>头文件<code>led.h</code></li>
+</ol>
+<p>头文件中包含了定义，包括寄存器的地址、数据结构和文件操作的重写：<br>
+寄存器地址之前已经提及，不再重复；<br>
+定义一个用于描述gpio控制器状态的结构体<code>gpio_t</code>，包含以下内容：</p>
+<pre><code><code><div>typedef struct 
+{
+	volatile int* pConf;
+	volatile int* pDataIn;
+	volatile int* pDataOut;
+} gpio_t;
+</div></code></code></pre>
+<p>三个条目分别指向重映射后的输出使能寄存器、输入寄存器和输出寄存器。
+对文件操作中的open、write、read和release方法进行重写，分别对应驱动文件中的方法：</p>
+<pre><code><code><div>struct file_operations led_fops =
+{
+    .open = led_open,
+    .write = led_write,
+    .read = led_read,
+    .release = led_release
+};
+</div></code></code></pre>
+<ol start="2">
+<li>源文件<code>led.c</code></li>
+</ol>
+<p>源文件中首先定义了一个静态变量major，用于存储分配到的主设备号：</p>
+<pre><code><code><div>static unsigned int major = 0; //主设备号（用于区分设备类）
+</div></code></code></pre>
+<p>接下来是模块的加载与卸载函数，一般而言，要求函数名为<code>init_module</code>和<code>cleanup_module</code>，但是处于方便考虑，也可以使用自定义的函数名，比如这里使用<code>led_init</code>作为初始化函数的名称，并在文件中声明<code>module_init(led_init);</code>，使系统在加载内核时能找到正确的函数。</p>
+<pre><code><code><div>major = register_chrdev(0, &quot;LED&quot;, &amp;led_fops);
+</div></code></code></pre>
+<p>在加载内核模块时，需要调用<code>register_chrdev</code>向系统申请注册一个字符设备，这里指定了设备名称为&quot;LED&quot;，不指定设备号，这样系统就会自动分配一个设备号，并返回存储在major变量中。然后调用<code>printk</code>函数将设备号打印在内核调试信息里，这样就可以通过<code>dmesg</code>命令查看得到的设备号，以在稍后的步骤中创建设备文件。</p>
+<p>为了在不需要控制的时候节约系统资源(虽然也节约不了多少，而且代价是调用时响应时间的增加)，因此在安装内核时不进行内存的分配和I/O的重映射，而是在打开设备时执行。</p>
+<pre><code><code><div>int led_open(struct inode* inode, struct file* filp)
+{
+    gpio_t* gpio;
+
+    filp-&gt;private_data = kmalloc(sizeof(gpio_t), GFP_KERNEL);
+    gpio = (gpio_t*)(filp-&gt;private_data);
+
+    gpio-&gt;pConf = ioremap(GPIO_OE, 4); /* 映 射 方 向 寄 存 器 */
+    gpio-&gt;pDataIn = ioremap(GPIO_IN, 4); /* 映 射 输 入 寄 存 器 */
+    gpio-&gt;pDataOut = ioremap(GPIO_OUT, 4); /* 映 射 输 出 寄 存 器 */
+	*(gpio-&gt;pConf) &amp;= ~(7 &lt;&lt; 22);
+	
+    return 0;
+}
+</div></code></code></pre>
+<p>对于每个模块，系统都有一个file结构体，其中的<code>private_data</code>指针可以用于管理模块需要存储的私有数据。在内核中分配一段空间用于存放gpio的重映射指针，并将<code>private_data</code>指针指向这段分配的空间，然后对于每一个重映射指针，使用<code>ioremap</code>函数将对应的GPIO寄存器的地址重映射到指针上，最后将GPIO的输出使能对应24、23、22引脚的bit复位，代表设置这三个引脚位输出模式，这样就完成了LED控制驱动的初始化。</p>
+<blockquote>
+<p>为什么左移22？<br>
+查阅资料发现，GPIO的引脚编号是从0开始计算的，因此22-24对应的应该是从1开始计算的第23-25位。</p>
+</blockquote>
+<p>对应的，当已经没有人在访问设备时，应该释放设备资源，而设备资源的释放不应该影响硬件状态，因此在<code>release</code>函数中，不对设备寄存器进行操作，使用<code>ioummap</code>取消对I/O的映射，然后释放<code>private_data</code>中分配到的内存。</p>
+<p>在读取设备的状态时，由于具体的模块驱动程序是一个LED的驱动而不是I/O驱动，因此此处不应该切换GPIO的模式，也不应该访问输入寄存器，而应该将输出寄存器中的值返回给用户，以“读取”此时LED的发光状态。使用<code>copy_to_user</code>函数将从输出寄存器中取出的值送入用户空间内：</p>
+<pre><code><code><div>ssize_t led_read(struct file* filp, char* buff, size_t count, loff_t* f_pos)
+{
+    gpio_t* gpio = (gpio_t*)(filp-&gt;private_data);
+    int data = *(gpio-&gt;pDataOut);
+	int uncopied = copy_to_user(buff, &amp;data, count);
+
+    return sizeof(char) - uncopied;
+}
+</div></code></code></pre>
+<p>在写入设备状态时，为了确保使用一些基本busybox程序如<code>echo</code>能够正常控制设备，因此规定写入格式为一个0-7之间的数字，代表从000到111中的8种状态，如果输入的值是ASCII码的数字，由于程序取低三位进行判断，因此不会有影响。然后，进行移位操作，取出每个LED应该对应的状态。</p>
+<pre><code><code><div>ssize_t led_write(struct file* filp, const char* buff, size_t count, loff_t* led_fops)
+{
+    char c;
+    gpio_t* gpio = (gpio_t*)(filp-&gt;private_data);
+
+	int uncopied = copy_from_user(&amp;c, buff, sizeof(buff));
+	
+    int temp[3];
+    int i = 0;
+
+    temp[0] = ((unsigned int)(c)) &amp; (1 &lt;&lt; 0);
+    temp[1] = ((unsigned int)(c)) &amp; (1 &lt;&lt; 1);
+    temp[2] = ((unsigned int)(c)) &amp; (1 &lt;&lt; 2);
+    
+    for (i = 0; i &lt; 3; ++i)
+    {
+        if (temp[i])
+        {
+            printk(&quot;Turning LED %d on\n&quot;, i);
+            led_on(i + 1);
+        }
+        else
+        {
+            printk(&quot;Turning LED %d off\n&quot;, i);
+            led_off(i + 1);
+        } 
+    }
+
+    printk(&quot;Write finished\n&quot;);
+    return sizeof(char) - uncopied;
+}
+</div></code></code></pre>
+<p>根据每一位的状态分别调用不同的语句向映射的寄存器中输入不同的值，<code>led_on</code>和<code>led_off</code>是定义在头文件里的宏，结构如下：</p>
+<pre><code><code><div>#define led_on(index) (*(gpio-&gt;pDataOut) |= (1 &lt;&lt; (21 + index)))
+#define led_off(index) (*(gpio-&gt;pDataOut) &amp;= ~(1 &lt;&lt; (21 + index)))
+</div></code></code></pre>
+<p>最后是移除模块时的操作，我们希望在移除模块后LED不在工作，因此首先通过I/O重映射将所有的输出寄存器复位，然后再取消映射，同时使用<code>unregister_chrdev(major, &quot;LED&quot;);</code>注销设备号。</p>
+<h4 id="32-%e7%94%a8%e6%88%b7%e7%a8%8b%e5%ba%8f">3.2 用户程序</h4>
+<p>用户程序提供了一种访问控制LED的方法，同时用户也可以通过其他程序使用指定的方式调用syscall，从而完成对LED的控制。</p>
+<p>程序支持输入参数，可以按照<code>ledctrl &lt;LED0&gt; &lt;LED1&gt; &lt;LED2&gt;</code>的方法对三个LED的状态进行控制，如果不输入参数，则会询问输入的值，然后使用write函数送入设备文件中。</p>
+<pre><code><code><div>    int fd = open(&quot;/dev/led&quot;, O_RDWR);
+    char buf = 0;
+    for (int i = 0; i &lt; 3; ++i)
+    {
+        buf |= (argv[i + 1][0] - 0x30) &lt;&lt; i;
+    }
+    printf(&quot;Writing %d to device\n&quot;, (int)buf);
+    write(fd, &amp;buf, 1);
+    close(fd);
+    return 0;
+</div></code></code></pre>
+<h3 id="4-%e8%bf%90%e8%a1%8c%e6%95%88%e6%9e%9c">4. 运行效果</h3>
+<h4 id="41-%e7%bc%96%e8%af%91%e7%a8%8b%e5%ba%8f">4.1 编译程序</h4>
+<p>使用<code>make</code>编译程序，然后使用<code>make copy</code>复制到根文件系统，准备测试。</p>
+<h4 id="42-%e5%ae%89%e8%a3%85%e6%a8%a1%e5%9d%97%e4%b8%8e%e5%88%9b%e5%bb%ba%e8%ae%be%e5%a4%87%e6%96%87%e4%bb%b6">4.2 安装模块与创建设备文件</h4>
+<p>文件中已经准备了led.sh用于安装模块和创建，但首次使用还是手动安装，以进行直观感受：</p>
+<pre><code><code><div>/mnt # insmod led.ko
+[   61.160530] led: loading out-of-tree module taints kernel.
+[   61.166134] led: module license 'MIT' taints kernel.
+[   61.171141] Disabling lock debugging due to kernel taint
+[   61.177251] Device registered with MAJOR = 245
+[   61.181816] do_init_module: 'led'-&gt;init suspiciously returned 245, it should 
+follow 0/-E convention
+[   61.181816] do_init_module: loading module anyway...
+[   61.195911] CPU: 0 PID: 138 Comm: insmod Tainted: P           O    4.4.155+ #
+11
+[   61.203250] Hardware name: Generic AM33XX (Flattened Device Tree)
+[   61.209409] [&lt;c001b1cc&gt;] (unwind_backtrace) from [&lt;c00158d4&gt;] (show_stack+0x2
+0/0x24)
+[   61.217205] [&lt;c00158d4&gt;] (show_stack) from [&lt;c052809c&gt;] (dump_stack+0x8c/0xa0
+)
+[   61.224474] [&lt;c052809c&gt;] (dump_stack) from [&lt;c00d658c&gt;] (do_init_module+0xa0/
+0x1e8)
+[   61.232169] [&lt;c00d658c&gt;] (do_init_module) from [&lt;c00d892c&gt;] (load_module+0x21
+90/0x2594)
+[   61.240212] [&lt;c00d892c&gt;] (load_module) from [&lt;c00d8e70&gt;] (SyS_init_module+0x1
+40/0x1f4)
+[   61.248174] [&lt;c00d8e70&gt;] (SyS_init_module) from [&lt;c0010f20&gt;] (ret_fast_syscal
+l+0x0/0x50)
+</div></code></code></pre>
+<p>从内核调试信息输出可得，分配到的主设备号为245，根据此设备号，使用<code>mknod</code>命令创建一个设备<code>led</code>：</p>
+<pre><code><code><div>/ # mknod /dev/led c 245 0                                                      
+/ # ls -al /dev/led                                                             
+crw-r--r--    1 0        0         245,   0 Jan  1 01:01 /dev/led  
+</div></code></code></pre>
+<p>成功创建了一个主设备号为245，次设备号为0的块设备。</p>
+<h4 id="43-%e8%b0%83%e7%94%a8%e9%a9%b1%e5%8a%a8">4.3 调用驱动</h4>
+<ol>
+<li>首先，使用<code>echo</code>命令访问设备文件，并输入一些数值进行测试：</li>
+</ol>
+<pre><code><code><div>/ # echo -n 7 &gt; /dev/led                                                        
+[  168.642410] Turning LED 0 on                                                 
+[  168.645427] Turning LED 1 on                                                 
+[  168.648345] Turning LED 2 on                                                 
+[  168.651235] Write finished                                                   
+[  168.654059] Releasing    
+
+/ # echo -n 0 &gt; /dev/led                                                        
+[  193.203207] Turning LED 0 off                                                
+[  193.206309] Turning LED 1 off                                                
+[  193.209309] Turning LED 2 off                                                
+[  193.212304] Write finished                                                   
+[  193.215116] Releasing   
+
+/ # echo -n 9 &gt; /dev/led                                                     
+[  274.992720] Turning LED 0 on                                                 
+[  274.995638] Turning LED 1 off                                                
+[  274.998671] Turning LED 2 off                                                
+[  275.001672] Write finished                                                   
+[  275.004491] Releasing    
+</div></code></code></pre>
+<p>可以看见，设备驱动正确解析了输入的数字，并点亮了对应的LED，实际LED的点亮情况与内核输出一致。<br>
+对于输入9的情况，由于9转换为二进制是1001，而驱动只会处理后三位，因此输入9与输入1等价。</p>
+<blockquote>
+<p>关于<code>echo -n</code>:<br>
+<code>-n</code>选项用于表示“不输出换行符”，如果不加上这个选项的话，输出会变成这样的：</p>
+</blockquote>
+<pre><code><code><div>/ # echo 7 &gt; /dev/led                                                           
+[  206.883079] Turning LED 0 on                                                 
+[  206.886118] Turning LED 1 on                                                 
+[  206.889038] Turning LED 2 on                                                 
+[  206.891927] Write finished                                                   
+[  206.894813] Turning LED 0 off                                                
+[  206.897839] Turning LED 1 on                                                 
+[  206.900757] Turning LED 2 off                                                
+[  206.903734] Write finished                                                   
+[  206.907139] Releasing           
+</div></code></code></pre>
+<blockquote>
+<p>这是由于换行符对应的ASCII码为0x0A，即二进制1010，与输入2(010)等价。</p>
+</blockquote>
+<ol>
+<li>使用提供的用户程序<code>lcdctrl</code>控制LED状态，可以在命令行指定LED状态：</li>
+</ol>
+<pre><code><code><div>/mnt # ./ledctrl 1 0 1                                                          
+Writing 5 to device[  244.743726] Turning LED 0 on                              
+                                                                                
+[  244.748612] Turning LED 1 off                                                
+[  244.751595] Turning LED 2 on                                                 
+[  244.754518] Write finished                                                   
+[  244.757741] Releasing     
+</div></code></code></pre>
+<ol start="3">
+<li>也可以直接打开程序，通过输入不同的值来切换LED状态：</li>
+</ol>
+<pre><code><code><div>/mnt # ./ledctrl                                                                
+Please input 0 to 7 to change status of 3 leds, an input of 8 or larger will be 
+considered as exiting                                                           
+Please input:1                                                                  
+[  315.227594] Turning LED 0 on                                                 
+[  315.230577] Turning LED 1 off                                                
+[  315.233574] Turning LED 2 off                                                
+[  315.236566] Write finished                                                   
+Please input 0 to 7 to change status of 3 leds, an input of 8 or larger will be 
+considered as exiting                                                           
+Please input:4                                                                  
+[  317.243592] Turning LED 0 off                                                
+[  317.246697] Turning LED 1 off                                                
+[  317.249692] Turning LED 2 on                                                 
+[  317.252598] Write finished                                                   
+Please input 0 to 7 to change status of 3 leds, an input of 8 or larger will be 
+considered as exiting                                                           
+Please input:3                                                                  
+[  319.611692] Turning LED 0 on                                                 
+[  319.614722] Turning LED 1 on                                                 
+[  319.617634] Turning LED 2 off                                                
+[  319.620629] Write finished                                                   
+Please input 0 to 7 to change status of 3 leds, an input of 8 or larger will be 
+considered as exiting                                                           
+Please input:7                                                                  
+[  321.499534] Turning LED 0 on                                                 
+[  321.502567] Turning LED 1 on                                                 
+[  321.505473] Turning LED 2 on                                                 
+[  321.508379] Write finished                                                   
+Please input 0 to 7 to change status of 3 leds, an input of 8 or larger will be 
+considered as exiting                                                           
+Please input:8                                                                  
+[  322.780032] Releasing   
+</div></code></code></pre>
+<h4 id="44-%e5%8d%b8%e8%bd%bd%e8%ae%be%e5%a4%87">4.4 卸载设备</h4>
+<p>使用<code>rmmod</code>命令卸载设备，释放设备号：</p>
+<pre><code><code><div>/mnt # rmmod led                                                                
+[  340.321003] LED module reset and removed.      
+</div></code></code></pre>
+<p>LED灯全部关闭，同时设备号245也被释放。</p>
+
+    </body>
+    </html>

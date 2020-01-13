@@ -73,9 +73,9 @@ ssize_t led_write(struct file* filp, const char* buff, size_t count, loff_t* led
     int temp[3];
     int i = 0;
 
-    temp[0] = ((unsigned int)(c - 0x30)) & (1 << 0);
-    temp[1] = ((unsigned int)(c - 0x30)) & (1 << 1);
-    temp[2] = ((unsigned int)(c - 0x30)) & (1 << 2);
+    temp[0] = ((unsigned int)(c)) & (1 << 0);
+    temp[1] = ((unsigned int)(c)) & (1 << 1);
+    temp[2] = ((unsigned int)(c)) & (1 << 2);
     
     for (i = 0; i < 3; ++i)
     {
@@ -99,9 +99,9 @@ ssize_t led_read(struct file* filp, char* buff, size_t count, loff_t* f_pos)
 {
     gpio_t* gpio = (gpio_t*)(filp->private_data);
     int data = *(gpio->pDataOut);
-	int copied = copy_to_user(buff, &data, count);
+	int uncopied = copy_to_user(buff, &data, count);
 
-    return copied;
+    return sizeof(char) - uncopied;
 }
 
 module_init(led_init);
