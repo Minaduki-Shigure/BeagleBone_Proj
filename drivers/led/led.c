@@ -98,7 +98,7 @@ ssize_t led_write(struct file* filp, const char* buff, size_t count, loff_t* led
 ssize_t led_read(struct file* filp, char* buff, size_t count, loff_t* f_pos)
 {
     gpio_t* gpio = (gpio_t*)(filp->private_data);
-    int data = *(gpio->pDataIn);
+    int data = *(gpio->pDataOut);
 	int copied = copy_to_user(buff, &data, count);
 
     return copied;

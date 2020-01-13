@@ -4,9 +4,9 @@ Copyright (c) 2019 Minaduki Shigure.
 项目repo地址：https://git.nju.edu.cn/Minaduki/beaglebone_proj
 
 ## 实验目的
-1. 使用Frame Buffer驱动HDMI显示器。
-2. 编写画点、画线的简单API函数。
-3. 尝试使用动态/静态链接库封装API。
+1. 学习嵌入式Linux操作系统设备驱动的方法。
+2. 编写一个I/O接口的驱动模块，并且安装到系统内核中，实现通过syscall访问设备。
+3. 提供一个用户空间程序，包装对接口的访问。
 
 ## 实验环境
 ### 1. 硬件环境
@@ -38,122 +38,37 @@ Copyright (c) 2019 Minaduki Shigure.
 > 关于实验原理：  
 具体的实验原理中，实验指导书有所提及的在这里不再重复叙述。这里仅进行一些补充说明。
 
-### 1. 关于screeninfo
-1. fb_fix_screeninfo  
-这个结构体在显卡模式设定后创建，用于描述显示卡的属性，如Frame Buffer在内存中的起始地址、占用大小，每行的长度、重映射的I/O的地址起止等。此结构体在系统正常运行时不可被修改。
-```
-struct fb_fix_screeninfo {  
-    char id[16];            /* identification string eg "TT Builtin" */  
-    unsigned long smem_start;/* Start of frame buffer mem */  
-    __u32 smem_len;         /* Length of frame buffer mem */  
-    __u32 type;             /* see FB_TYPE_*        */  
-    __u32 type_aux;         /* Interleave for interleaved Planes */  
-    __u32 visual;           /* see FB_VISUAL_*      */   
-    __u16 xpanstep;         /* zero if no hardware panning  */  
-    __u16 ypanstep;         /* zero if no hardware panning  */  
-    __u16 ywrapstep;        /* zero if no hardware ywrap    */  
-    __u32 line_length;      /* length of a line in bytes    */  
-    unsigned long mmio_start;/* Start of Memory Mapped I/O   */  
-    __u32 mmio_len;         /* Length of Memory Mapped I/O  */  
-    __u32 accel;            /* Indicate to driver which */  
-    __u16 reserved[3];      /* Reserved for future compatibility */  
-};
-```
-2. fb_var_screeninfo  
-这个结构体中储存可供用户修改的变量，可以使用ioctl函数或者fbset命令进行全部/部分属性的更改。  
-包含了屏幕的可见分辨率和虚拟分辨率、每个像素所占空间的大小、偏移量、灰度和显示模式等。  
-> 关于虚拟分辨率：  
-> 在实际使用中，常常通过设置两倍于真实分辨率的虚拟分辨率来达到预渲染的效果，以充分利用资源、防止画面卡顿，当然如果系统资源足够，也可以设置更高的虚拟分辨率。虚拟分辨率可以配合偏移量使用，在不进行重绘的情况下完成一些简单的动画效果。
-```
-struct fb_var_screeninfo {  
-    __u32 xres;         /* 行可见像素*/  
-    __u32 yres;         /* 列可见像素*/  
-    __u32 xres_virtual; /* 行虚拟像素*/  
-    __u32 yres_virtual; /* 列虚拟像素*/  
-    __u32 xoffset;      /* 水平偏移量*/  
-    __u32 yoffset;      /* 垂直偏移量*/  
-    __u32 bits_per_pixel;/*每个像素所占bit位数*/  
-    __u32 grayscale;    /* 灰色刻度*/  
-    struct fb_bitfield red; /* bitfield in fb mem if true color, */  
-    struct fb_bitfield green;   /* else only length is significant */  
-    struct fb_bitfield blue;  
-    struct fb_bitfield transp;  /* transparency         */    
-    __u32 nonstd;           /* != 0 Non standard pixel format */  
-    __u32 activate;         /* see FB_ACTIVATE_*        */  
-    __u32 height;           /* 图像高度*/  
-    __u32 width;            /* 图像宽度*/  
-    __u32 accel_flags;      /* (OBSOLETE) see fb_info.flags */  
-    __u32 pixclock;         /* pixel clock in ps (pico seconds) */  
-    __u32 left_margin;      /* time from sync to picture    */  
-    __u32 right_margin;     /* time from picture to sync    */  
-    __u32 upper_margin;     /* time from sync to picture    */  
-    __u32 lower_margin;  
-    __u32 hsync_len;        /* length of horizontal sync    */  
-    __u32 vsync_len;        /* length of vertical sync  */  
-    __u32 sync;         /* see FB_SYNC_*        */  
-    __u32 vmode;            /* see FB_VMODE_*       */  
-    __u32 rotate;           /* angle we rotate counter clockwise */  
-    __u32 reserved[5];      /* Reserved for future compatibility */  
-};  
-```
+### 关于内核模块
+内核模块可以减小内核的体积，同时增强内核的拓展性。内核模块在加载时只会被链接到内核，因此不能使用标准glibc库的函数，应该使用内核提供的API，并在编译时提供内核源码。  
+内核模块可以用于实现设备驱动的功能。  
+内核模块驱动程序与守护进程的区别有以下几点：  
+1. 守护进程运行在用户空间，内核模块运行在内核空间。因此内核模块不能直接访问用户空间的指针。
+2. 守护进程是后台进程，系统CPU会定期访问进程以检查是否有请求，而内核模块只能被动接受请求。
 
-### 关于链接库
-链接库主要是预编译的目标文件的集合，可以被编译器链接进程序，使用库文件主要是为了节约重复编译的时间成本和减少代码更新的工作复杂度。  
-理论来说，使用Makefile对目标文件进行管理也可以起到同样的效果，但是在不同系统之间迁移时，链接库显然更胜一筹。  
-1. 静态库  
-静态库可以理解为目标文件的简单打包，由程序`ar`生成。  
-静态库文件的内容会直接被打包到生成的二进制文件中，因此仅在编译环节需要，编译生成的二进制可以独立运行。
-```
-$ export AR=ar CC=gcc
-$ AR -rcs <Library name> <Objective files>
-$ CC -o main -lmylib <src>
-```
-2. 动态链接库  
-动态链接库不需要打包在程序里，只会在程序里留下对应的接口，在运行时寻找对应的代码，因此体积更小，同时库文件升级时，如果函数接口没有变化，就不用重新编译。
-```
-$ export CC=gcc
-$ CC -shared -fPIC -o libmylib.so <libsrc>
-$ CC -o main -lmylib <src>
-```
-> 其中，第一句CC用于生成动态链接库，第二句CC则是使用动态链接库链接二进制程序。  
-> `-fPIC`参数代表生成位置无关代码(Position-Independent Code)。  
-> 如果没有使用`-l`的方式指定库文件位置，而是直接将其当作目标文件处理，则运行时库文件的位置必须与编译时一致。
+### 关于设备文件
+设备文件使用`mknod`命令创建，通过设备号与内核设备驱动相对应，在对设备文件请求系统调用时，会根据设备文件的设备号去内核寻找注册了该设备号的模块，然后调用其注册的方法进行实际I/O操作。
+
+### 关于LED与GPIO
+BeagleBone Black开发板上总共有3个空闲可供使用的LED(还有一个被系统用作状态指示灯了)，这三个LED都位于GPIO1控制器上，分别对应GPIO24-GPIO22的引脚。  
+对于GPIO控制器，其拥有数个寄存器，其中与本次实验相关的寄存器为`GPIO_OE`与`GPIO_DATAOUT`，每个寄存器大小为4byte，对应每个GPIO控制器控制的32个引脚，其中`GPIO_OE`负责输出使能，0为输出，1为输入，而`GPIO_DATAOUT`对应每个引脚具体的输出状态。实际使用中，只需要将对应的寄存器地址使用ioremap映射到内存中然后就可以进行存取。
 
 ## 实验流程
 ### 1. 准备工作
 #### 1.1 重新配置编译内核
-使用`make menuconfig ARCH=arm`对内核进行自定义，需要保证如下条件满足：
-1. `Device Drivers->Graphics support->DRM support for TI LCDC Display Controller`已被启用，这是开发板上的LCD控制器驱动，用于支持帧缓冲设备，启用后才能在设备目录下看见fb设备。  
-2. `Device Drivers->Graphics support->I2C encoder or helper chips->NXP semiconductors TDA668X HDMI encoder`已被启用，这是开发板上HDMI输出的驱动，用于将LCDC的输出编码为HDMI输出，启用后才能将Frame Buffer中的内容输出至HDMI显示器上。
+使用`make menuconfig ARCH=arm`对内核进行自定义，需要保证如下条件满足：  
+`Enable loadable module support`处于启用状态，支持在系统运行时加载/卸载驱动模块。
 
-配置完成后重新编译内核。
+如有配置修改，配置完成后重新编译内核。
 
-#### 1.2 重新配置根文件系统
-虚拟文件系统可以提供许多直接方便的硬件访问，因此重新配置启动脚本`/etc/rc`，在最后加上：
-```
-mount -t sysfs sys /sys
-```
-另外，实验中开发板的文件交换由NFS进行实现，因此在启动脚本中添加自动挂载NFS目录的命令：
-```
-mount -o nolock 192.168.208.35:/srv/nfs4 /mnt
-```
-由于系统使用NFS作为根文件系统，因此在启动时会自动配置网络，如果使用其他根文件系统启动，还应该在挂载命令之前添加：
-```
-ifconfig eth0 192.168.208.121
-route add default gw 192.168.208.254
-```
+至此，所有准备工作完成，使用内核和根文件系统启动。
 
-至此，所有准备工作完成，使用重新配置的内核和根文件系统启动。
+### 2. 确定项目结构
+项目由三部分组成，分别为：
+1. 内核模块文件`led.c`和`led.h`，编译后生成内核目标文件，提供syscall供用户程序调用。
+2. 脚本文件`led.sh`，负责在开发板上安装内核模块，并且创建设备文件。
+3. 用户程序`ledctrl.c`，通过syscall调用内核模块驱动，提供直观的LED驱动控制。
 
-### 2. 确定程序结构与封装
-程序包含三部分源文件，分别为：
-1. 通过syscall与底层LCDC帧缓冲驱动交互的程序`LCDC.c`和提供给用户的接口头文件`LCDC.h`。  
-2. 通过交互程序进行简单图形字符绘制的绘图程序`mydraw.c`、字体文件`FONT.H`和提供给用户的接口头文件`mydraw.h`。  
-3. 用户程序`main.c`。
-
-三部分源文件互相独立，可以单独升级/替换任意一部分而不影响程序功能，比如，移植到其他设备时，只需要将`LCDC.c`替换，重新编译即可。
-
-程序通过Makefile进行管理，将`LCDC.c`和`mydraw.c`文件编译为`libgraphics.so`的动态链接库，同时提供`LCDC.h`和`mydraw.h`用于应用开发。
+项目通过Makefile进行管理，将`LCDC.c`和`mydraw.c`文件编译为`libgraphics.so`的动态链接库，同时提供`LCDC.h`和`mydraw.h`用于应用开发。
 文件 | 属于 | 依赖于 | 是否提供给用户
 :- | :-: | :-: | -:
 LCDC.h | 系统交互 | 无 | 是
