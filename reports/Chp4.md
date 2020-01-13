@@ -172,12 +172,47 @@ mplayer: ELF 32-bit LSB executable, ARM, EABI5 version 1 (GNU/Linux), statically
 #### 查看使用方法
 切换到Mplayer所在的目录，直接运行mplayer程序，检查一下程序能否正常运行并了解程序用法，程序输出如下：
 ```
+/mnt/MPlayer-1.4 # ./mplayer                                                    
+MPlayer 1.4-9 (C) 2000-2019 MPlayer Team                                        
+Usage:   mplayer [options] [url|path/]filename                                  
+                                                                                
+Basic options: (complete list in the man page)                                  
+ -vo <drv>        select video output driver ('-vo help' for a list)            
+ -ao <drv>        select audio output driver ('-ao help' for a list)            
+ vcd://<trackno>  play (S)VCD (Super Video CD) track (raw device, no mount)     
+ -alang/-slang    select DVD audio/subtitle language (by 2-char country code)   
+ -ss <position>   seek to given (seconds or hh:mm:ss) position                  
+ -nosound         do not play sound                                             
+ -fs              fullscreen playback (or -vm, -zoom, details in the man page)  
+ -x <x> -y <y>    set display resolution (for use with -vm or -zoom)            
+ -sub <file>      specify subtitle file to use (also see -subfps, -subdelay)    
+ -playlist <file> specify playlist file                                         
+ -vid x -aid y    select video (x) and audio (y) stream to play                 
+ -fps x -srate y  change video (x fps) and audio (y Hz) rate                    
+ -pp <quality>    enable postprocessing filter (details in the man page)        
+ -framedrop       enable frame dropping (for slow machines)                     
+                                                                                
+Basic keys: (complete list in the man page, also check input.conf)              
+ <-  or  ->       seek backward/forward 10 seconds                              
+ down or up       seek backward/forward  1 minute                               
+ pgdown or pgup   seek backward/forward 10 minutes                              
+ < or >           step backward/forward in playlist                             
+ p or SPACE       pause movie (press any key to continue)                       
+ q or ESC         stop playing and quit program                                 
+ + or -           adjust audio delay by +/- 0.1 second                          
+ o                cycle OSD mode:  none / seekbar / seekbar + timer             
+ * or /           increase or decrease PCM volume                               
+ x or z           adjust subtitle delay by +/- 0.1 second                       
+ r or t           adjust subtitle position up/down, also see -vf expand         
+                                                                                
+ * * * SEE THE MAN PAGE FOR DETAILS, FURTHER (ADVANCED) OPTIONS AND KEYS * * *
 ```
-
+可以认为Mplayer安装配置成功，可以正常运行。
 
 #### 播放音频文件
 使用mplayer播放一个普通的波形声音文件，连接耳机到USB声卡上，欣赏效果。 
 ```
+/mnt/MPlayer-1.4 # ./mplayer ../Guardians.wav    
 ``` 
 声音文件属性如下：
 ```
@@ -185,30 +220,137 @@ $ file Guardians.wav
 Guardians.wav: RIFF (little-endian) data, WAVE audio, Microsoft PCM, 16 bit, stereo 48000 Hz
 ```
 
-```
-$ file Guardians.mp3
-Guardians.mp3: Audio file with ID3 version 2.3.0, contains:MPEG ADTS, layer III, v1, 320 kbps, 44.1 kHz, Stereo
-```
 播放效果很好，音频输出正常，没有杂音或者缺失，播放流畅没有卡顿，终端输出内容如下：
 ```
+MPlayer 1.4-9 (C) 2000-2019 MPlayer Team                                        
+                                                                                
+Playing ../Guardians.wav.                                                       
+libavformat version 58.27.102 (internal)                                        
+Audio only file format detected.                                                
+Load subtitles in ../                                                           
+==========================================================================      
+Opening audio decoder: [pcm] Uncompressed PCM audio decoder                     
+AUDIO: 48000 Hz, 2 ch, s16le, 1536.0 kbit/100.00% (ratio: 192000->192000)       
+Selected audio codec: [pcm] afm: pcm (Uncompressed PCM)                         
+==========================================================================      
+AO: [oss] 48000Hz 2ch s16le (2 bytes per sample)                                
+Video: no video                                                                 
+Starting playback...                                                            
+A:   8.6 (08.5) of 75.0 (01:15.0)  1.1%  
 ```
-可以通过  调整音量：
-```
-```
+可以通过数字键9和0调整音量。
 
 #### 播放本地视频文件
-使用mplayer播放一个大小较小的视频文件，连接耳机到USB声卡上播放声音，连接HDMI显示器显示画面。
+使用mplayer播放一个大小较小的视频文件，连接耳机到USB声卡上播放声音，连接HDMI显示器显示画面。  
+在播放前，要使用fbset将Frame Buffer的分辨率设定为一个值，防止Mplayer设定失败而无法播放。
 ```
+/mnt/MPlayer-1.4 # fbset -g 640 480 640 480 16                                  
+/mnt/MPlayer-1.4 # ./mplayer ../dog.mp4        
 ```
-视频文件属性如下：
+终端输出如下：
 ```
+MPlayer 1.4-9 (C) 2000-2019 MPlayer Team                                        
+                                                                                
+Playing ../dog.mp4.                                                             
+libavformat version 58.27.102 (internal)                                        
+libavformat file format detected.                                               
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0xf3f278]Protocol name not provided, cannot determine
+ if input is local or a network protocol, buffers and access patterns cannot be 
+configured optimally without knowing the protocol                               
+[  192.943290] tilcdc 4830e000.lcdc: tilcdc_crtc_irq(0x00000020): FIFO underfow 
+[  192.950490] tilcdc 4830e000.lcdc: tilcdc_crtc_irq(0x00000104): Sync lost     
+[lavf] stream 0: video (h264), -vid 0                                           
+[lavf] stream 1: audio (aac), -aid 0, -alang und                                
+VIDEO:  [H264]  640x352  24bpp  24.000 fps  329.3 kbps (40.2 kbyte/s)           
+==========================================================================      
+Opening video decoder: [ffmpeg] FFmpeg's libavcodec codec family                
+libavcodec version 58.51.100 (internal)                                         
+Selected video codec: [ffh264] vfm: ffmpeg (FFmpeg H.264)                       
+==========================================================================      
+Clip info:                                                                      
+ major_brand: mp42                                                              
+ minor_version: 0                                                               
+ compatible_brands: isommp42                                                    
+ creation_time: 2018-10-08T12:59:25.000000Z                                     
+Load subtitles in ../                                                           
+==========================================================================      
+Opening audio decoder: [ffmpeg] FFmpeg/libavcodec audio decoders                
+AUDIO: 44100 Hz, 2 ch, floatle, 96.0 kbit/3.40% (ratio: 11999->352800)          
+Selected audio codec: [ffaac] afm: ffmpeg (FFmpeg AAC (MPEG-2/MPEG-4 Audio))    
+==========================================================================      
+AO: [oss] 44100Hz 2ch s16le (2 bytes per sample)                                
+Starting playback...                                                            
+Could not find matching colorspace - retrying with -vf scale...                 
+Opening video filter: [scale]                                                   
+Movie-Aspect is 1.82:1 - prescaling to correct movie aspect.                    
+[swscaler @ 0xf5e900]bicubic scaler, from yuv420p to rgb565le using C           
+[swscaler @ 0xf5e900]No accelerated colorspace conversion found from yuv420p to 
+rgb565le.                                                                       
+[swscaler @ 0xf5e900]using unscaled yuv420p -> rgb565le special converter       
+VO: [fbdev] 640x352 => 640x352 BGR 16-bit                                       
+A:   0.4 V:   0.2 A-V:  0.192 ct:  0.000   0/  0 ??% ??% ??,?% 4 0  
 ```
+可以播放视频，但是屏幕在不该出现视频的部分有闪屏现象。
+![ScreenCapture](./pic/video.png)
 
 > 经过后续步骤发现，mplayer的拉伸画面并不是将视频拉伸至填满画面，而是使用黑色填满视频外的画面部分。
 
 #### 播放网络视频文件(HTTP协议)
 使用使用mplayer在线播放同一个视频文件，连接耳机到USB声卡上播放声音，连接HDMI显示器显示画面。
 ```
+/mnt/MPlayer-1.4 # ./mplayer http://101.132.47.121:6888/dog.mp4
+```
+由于没有配置DNS相关信息，因此没有办法指定域名，必须手动输入IP地址，Mplayer会访问IP地址进行播放。
+```
+MPlayer 1.4-9 (C) 2000-2019 MPlayer Team                                        
+                                                                                
+Playing http://101.132.47.121:6888/dog.mp4.                                     
+Resolving 101.132.47.121 for AF_INET6...                                        
+                                                                                
+Couldn't resolve name for AF_INET6: 101.132.47.121                              
+Connecting to server 101.132.47.121[101.132.47.121]: 6888...                    
+                                                                                
+Cache size set to 320 KBytes                                                    
+Cache fill:  0.00% (0 bytes)                                                    
+                                                                                
+libavformat version 58.27.102 (internal)                                        
+libavformat file format detected.                                               
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0xf3f278]Protocol name not provided, cannot determine
+ if input is local or a network protocol, buffers and access patterns cannot be 
+configured optimally without knowing the protocol                               
+[lavf] stream 0: video (h264), -vid 0                                           
+[lavf] stream 1: audio (aac), -aid 0, -alang und                                
+VIDEO:  [H264]  640x352  24bpp  24.000 fps  329.3 kbps (40.2 kbyte/s)           
+==========================================================================      
+Opening video decoder: [ffmpeg] FFmpeg's libavcodec codec family                
+libavcodec version 58.51.100 (internal)                                         
+Selected video codec: [ffh264] vfm: ffmpeg (FFmpeg H.264)                       
+==========================================================================      
+Clip info:                                                                      
+ major_brand: mp42                                                              
+ minor_version: 0                                                               
+ compatible_brands: isommp42                                                    
+ creation_time: 2018-10-08T12:59:25.000000Z                                     
+==========================================================================      
+Opening audio decoder: [ffmpeg] FFmpeg/libavcodec audio decoders                
+AUDIO: 44100 Hz, 2 ch, floatle, 96.0 kbit/3.40% (ratio: 11999->352800)          
+Selected audio codec: [ffaac] afm: ffmpeg (FFmpeg AAC (MPEG-2/MPEG-4 Audio))    
+==========================================================================      
+AO: [oss] 44100Hz 2ch s16le (2 bytes per sample)                                
+Starting playback...                                                            
+Could not find matching colorspace - retrying with -vf scale...                 
+Opening video filter: [scale]                                                   
+Movie-Aspect is 1.82:1 - prescaling to correct movie aspect.                    
+[swscaler @ 0xf5e900]bicubic scaler, from yuv420p to rgb565le using C           
+[swscaler @ 0xf5e900]No acc[  856.869871] tilcdc 4830e000.lcdc: tilcdc_crtc_irq(
+0x00000020): FIFO underfow                                                      
+elerated colorspace conversion found from yuv420p to rgb565le.                  
+[  856.884982] tilcdc 4830e000.lcdc: tilcdc_crtc_irq(0x00000004): Sync lost     
+[swscaler @ 0xf5e900]using unscaled yuv420p -> rgb565le special [  856.896399] t
+ilcdc 4830e000.lcdc: tilcdc_crtc_irq(0x00000004): Sync lost                     
+converter                                                                       
+VO: [fbdev] 640x352 => 640x352 BGR 16-bit                                       
+A:   9.0 V:   9.0 A-V:  0.000 ct:  0.000   0/  0 40% 16% 10.9% 15 0 45%   
 ```
 
 相比本地播放，没有肉眼可见的画质/帧率损失，播放效果可以接受。
@@ -217,12 +359,52 @@ Guardians.mp3: Audio file with ID3 version 2.3.0, contains:MPEG ADTS, layer III,
 ### 关于帧缓冲设备与性能差异
 为了验证是否是由于Frame Buffer的配置问题导致的视频播放问题，使用一个Raspberry Pi Zero WH移植Mplayer，播放媒体进行测试。树莓派中系统版本为：
 ```
+$ uname -a
+Linux raspberrypi 4.19.75+ #1270 Tue Sep 24 18:38:54 BST 2019 armv6l GNU/Linux
 ```
 zlib和libmad在树莓派系统中已经包含，Mplayer使用同样的源码交叉编译。  
-播放视频，音视频输出正常，没有花屏现象，同时树莓派可以通过HDMI输出音频：
+播放视频，音视频输出正常，没有花屏现象，同时树莓派可以通过HDMI输出音频，但是对Frame Buffer截屏输出发现，设备的Frame Buffer存储了三帧的视频，在截取后没法转换成图片，但是的确可以正常播放：
+```
+frame=    3 fps=0.0 q=-0.0 Lsize=N/A time=00:00:00.08 bitrate=N/A speed=1.47x    
+video:391kB audio:0kB subtitle:0kB other streams:0kB global headers:0kB muxing overhead: unknown
+Conversion failed!
+```
 
 因此推测可能的确是由于显示驱动的问题，导致在BeagleBone上视频播放效果不尽人意。  
-另外，在树莓派上可以播放对资源要求更大的视频而不会卡顿，比如  
-但是同时，我发现，使用Mplayer播放器播放更大的视频会卡顿，但是使用VLC就很流畅，我一开始以为是我配置的问题，但是后来使用apt直接安装Mplayer(版本1.3)，也依然卡顿。由于两者用的编解码库都是ffmpeg，因此我猜想可能是因为两者调用了不同的显示渲染方式，从而产生了性能的差异。也许移植VLC能解决部分问题(如果没有被更复杂的依赖解决的话)。
+另外，在树莓派上可以播放对资源要求更大的视频而不会卡顿，虽然会提示系统资源占用过高，但是播放效果很好：
+```
+           ************************************************                     
+           **** Your system is too SLOW to play this!  ****                     
+           ************************************************                     
+                                                                                
+Possible reasons, problems, workarounds:                                        
+- Most common: broken/buggy _audio_ driver                                      
+  - Try -ao sdl or use the OSS emulation of ALSA.                               
+  - Experiment with different values for -autosync, 30 is a good start.         
+- Slow video output                                                             
+  - Try a different -vo driver (-vo help for a list) or try -framedrop!         
+- Slow CPU                                                                      
+  - Don't try to play a big DVD/DivX on a slow CPU! Try some of the lavdopts,   
+    e.g. -vfm ffmpeg -lavdopts lowres=1:fast:skiploopfilter=all.                
+- Broken file                                                                   
+  - Try various combinations of -nobps -ni -forceidx -mc 0.                     
+- Slow media (NFS/SMB mounts, DVD, VCD etc)                                     
+  - Try -cache 8192.                                                            
+- Are you using -cache to play a non-interleaved AVI file?                      
+  - Try -nocache.                                                               
+Read DOCS/HTML/en/video.html for tuning/speedup tips.                           
+If none of this helps you, read DOCS/HTML/en/bugreports.html.  
+```
 
-> 还有一个很大的收获就是了解了包管理系统的重要性。
+但是同时，我发现，使用Mplayer播放器播放更大的视频会卡顿，但是使用VLC就很流畅：  
+(由于无法直接截屏，这里原本应有的图片没法放上来了)
+```
+pi@raspberrypi:~$ cvlc http://www.minaduki.cn:6888/td2.flv                      
+VLC media player 3.0.8 Vetinari (revision 3.0.8-0-gf350b6b5a7)
+```
+
+![VLC on Pi Zero](./pic/vlc.jpg)
+
+我一开始以为是我配置的问题，但是后来使用apt直接安装Mplayer(版本1.3)，也依然卡顿。由于两者用的编解码库都是ffmpeg，因此我猜想可能是因为两者调用了不同的显示渲染方式，从而产生了性能的差异。也许移植VLC能解决部分问题(如果没有被更复杂的依赖解决的话)。
+
+> 还有一个很大的收获就是了解了包管理系统的重要性，管理依赖真的是个很复杂又很重要的任务。
